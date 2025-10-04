@@ -43,7 +43,9 @@ jobs:
     - name: Download database on server
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
-          wget -O regnumforum.db '${{ vars.DB_URL }}'"
+          wget -O _tmp_db.tmp '${{ vars.DB_URL }}' && \
+          cp _tmp_db.tmp regnumforum.db && \
+          rm _tmp_db.tmp"
         
     - name: Deploy application
       run: |
