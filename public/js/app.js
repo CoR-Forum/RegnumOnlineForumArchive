@@ -13,7 +13,8 @@ import {
     saveScrollPosition,
     restoreScrollPosition,
     clearScrollPosition,
-    enableAutoScrollSave
+    enableAutoScrollSave,
+    formatNumber
 } from './utils.js';
 import { threadsAPI, usersAPI, statsAPI, cachedAPI } from './api.js';
 // WebSocket removed - static archive only
@@ -24,6 +25,7 @@ import {
     createLanguageTabs,
     createCategoriesOverview,
     createCategoriesSidebar,
+    createCategoriesSidebarGrouped,
     createPagination,
     createBreadcrumb,
     createStatsCards,
@@ -53,8 +55,14 @@ class ForumApplication {
         // Enable auto-scroll position saving
         this.scrollCleanup = enableAutoScrollSave('homepage', 200);
         
-        // Initialize application
+        // Track loading start time
+        this.loadingStartTime = Date.now();
+        
+                // Initialize the forum app
         this.init();
+        
+        // Load stats for footer
+        this.loadFooterStats();
     }
     
     // Initialize the application
@@ -124,14 +132,20 @@ class ForumApplication {
         // WebSocket event listeners removed - static archive only
     }
     
-    // Hide loading overlay
+    // Hide loading overlay (ensures it shows for at least 1.5 seconds)
     hideLoadingOverlay() {
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {
-            overlay.classList.add('fade-out');
+            const elapsedTime = Date.now() - this.loadingStartTime;
+            const minDisplayTime = 500; // 1.5 seconds
+            const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
+            
             setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 500);
+                overlay.classList.add('fade-out');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 500);
+            }, remainingTime);
         }
     }
     
@@ -250,39 +264,68 @@ class ForumApplication {
             { text: 'Forum', icon: 'bi-house', action: 'navigateToHome()' }
         ]);
         
-        // Update SEO for home page
+        // Update SEO for home page with enhanced metadata
         let seoTitle = 'Regnum Online Forum Archive';
         let seoDescription = 'Champions of Regnum community forum archive. Browse threads, posts, and discussions from the Regnum Online gaming community.';
         let seoUrl = '/';
+        let seoKeywords = 'Regnum Online, Champions of Regnum, forum archive, gaming community, discussions, threads, posts';
         
         if (language) {
-            seoTitle = `${language} Threads - Regnum Online Forum Archive`;
-            seoDescription = `Browse ${language} discussions and threads from the Champions of Regnum community.`;
+            seoTitle = `${language} Discussions - Regnum Online Forum Archive`;
+            seoDescription = `Browse ${language} discussions and threads from the Champions of Regnum community. Discover gaming strategies, community events, and player interactions.`;
             seoUrl = `/?language=${encodeURIComponent(language)}`;
+            seoKeywords = `Regnum Online, Champions of Regnum, ${language}, forum archive, gaming community, discussions, threads, posts, ${language} language`;
         }
         
         if (category) {
-            seoTitle = `${category} (${language}) - Regnum Online Forum Archive`;
-            seoDescription = `Browse ${category} discussions in ${language} from the Champions of Regnum community.`;
+            seoTitle = `${category} - ${language} Discussions`;
+            seoDescription = `Browse ${category} discussions in ${language} from the Champions of Regnum community. Find specific topics and conversations about ${category.toLowerCase()}.`;
             seoUrl = `/?language=${encodeURIComponent(language)}&category=${encodeURIComponent(category)}`;
+            seoKeywords = `${category}, ${language}, Regnum Online, Champions of Regnum, forum archive, gaming community, discussions, threads`;
         }
         
         updateSEO({
             title: seoTitle,
             description: seoDescription,
             url: seoUrl,
-            keywords: `Regnum Online, Champions of Regnum, forum archive, ${language || 'gaming'}, ${category || 'discussions'}, threads, posts`
+            keywords: seoKeywords,
+            type: 'website',
+            locale: language === 'Español' ? 'es_ES' : language === 'Português' ? 'pt_PT' : language === 'Deutsch' ? 'de_DE' : language === 'Français' ? 'fr_FR' : language === 'Italiano' ? 'it_IT' : 'en_US'
+        });
+        
+        // Generate structured data for the homepage
+        generateStructuredData('WebSite', {
+            name: seoTitle,
+            description: seoDescription,
+            url: window.location.origin + seoUrl,
+            publisher: {
+                '@type': 'Organization',
+                name: 'Champions of Regnum Community',
+                logo: {
+                    '@type': 'ImageObject',
+                    url: window.location.origin + '/assets/cor-logo.png'
+                }
+            },
+            potentialAction: {
+                '@type': 'SearchAction',
+                target: {
+                    '@type': 'EntryPoint',
+                    urlTemplate: window.location.origin + '/?search={search_term_string}'
+                },
+                'query-input': 'required name=search_term_string'
+            }
         });
         
         try {
             showLoading('main-content');
             
-            // Load threads
+            // Load threads - use random threads on main index page
             const threadsResponse = await threadsAPI.getThreads({
                 language,
                 category,
                 page,
-                limit: 20
+                limit: 20,
+                random: !language && !category // Get random threads only on main index page
             });
             
             if (!threadsResponse.success) {
@@ -299,36 +342,46 @@ class ForumApplication {
                 content += createLanguageTabs(this.cachedData.languages, language);
             }
             
-            // Add categories overview if no specific language is selected
-            if (!language && !category) {
-                try {
-                    const categoriesResponse = await threadsAPI.getCategories();
-                    if (categoriesResponse.success) {
-                        content += createCategoriesOverview(categoriesResponse.data);
-                    }
-                } catch (error) {
-                    console.warn('Failed to load categories overview:', error);
-                }
-            }
+            // Skip categories overview - we'll show sidebar instead
             
             // Create main content area
             content += '<div class="row">';
             
-            // Add categories sidebar if language is selected
-            if (language) {
-                try {
+            // Add categories sidebar - always show it
+            try {
+                if (language) {
+                    // Show categories for specific language
                     const categoriesResponse = await threadsAPI.getCategories(language);
                     if (categoriesResponse.success) {
                         content += createCategoriesSidebar(categoriesResponse.data, category);
                     }
-                } catch (error) {
-                    console.warn('Failed to load categories sidebar:', error);
+                } else {
+                    // Show all categories grouped by language
+                    const categoriesResponse = await threadsAPI.getCategories();
+                    if (categoriesResponse.success && categoriesResponse.data) {
+                        content += createCategoriesSidebarGrouped(categoriesResponse.data, language, category);
+                    }
                 }
+            } catch (error) {
+                console.warn('Failed to load categories sidebar:', error);
             }
             
             // Add threads list
-            const mainColClass = language ? 'col-md-9' : 'col-12';
+            const mainColClass = 'col-md-9';
             content += `<div class="${mainColClass}">`;
+            
+            // Add header for random threads on main page
+            if (!language && !category) {
+                content += `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4><i class="bi bi-shuffle text-primary"></i> Random Forum Threads</h4>
+                        <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise"></i> Shuffle Again
+                        </button>
+                    </div>
+                `;
+            }
+            
             content += createThreadList(threads);
             content += '</div>';
             
@@ -392,21 +445,80 @@ class ForumApplication {
             ];
             this.updateBreadcrumb(breadcrumbs);
             
-            // Update SEO for thread page
-            const threadDescription = posts && posts.length > 0 && posts[0].content ? 
-                posts[0].content.replace(/<[^>]*>/g, '').substring(0, 160) + '...' :
-                `Discussion thread about ${thread.name} in the Champions of Regnum community.`;
+            // Update SEO for thread page with thread title as primary focus
+            let threadDescription = thread.name;
+            
+            // Enhance description with first post content if available
+            if (posts && posts.length > 0 && posts[0].message) {
+                // Clean HTML tags and extract plain text from first post
+                const firstPostContent = posts[0].message
+                    .replace(/<[^>]*>/g, '') // Remove HTML tags
+                    .replace(/\s+/g, ' ') // Normalize whitespace
+                    .trim();
+                
+                if (firstPostContent.length > 10) { // Only use if meaningful content exists
+                    const maxDescLength = 160;
+                    
+                    // If thread name is short enough, append first post content
+                    if (thread.name.length < 100) {
+                        const separator = ' - ';
+                        const availableLength = maxDescLength - thread.name.length - separator.length - 3; // -3 for "..."
+                        
+                        if (availableLength > 20) { // Only add if we have meaningful space
+                            let contentPart = firstPostContent.substring(0, availableLength);
+                            
+                            // Try to break at word boundary
+                            const lastSpace = contentPart.lastIndexOf(' ');
+                            if (lastSpace > availableLength * 0.6) { // If we can break at a reasonable point
+                                contentPart = contentPart.substring(0, lastSpace);
+                            }
+                            
+                            threadDescription = thread.name + separator + contentPart + (firstPostContent.length > availableLength ? '...' : '');
+                        }
+                    } else {
+                        // Thread name is long, just use it and truncate if needed
+                        if (thread.name.length > maxDescLength) {
+                            threadDescription = thread.name.substring(0, maxDescLength - 3) + '...';
+                        }
+                    }
+                } else {
+                    // No meaningful first post content, enhance with category and language info
+                    const contextInfo = ` - ${thread.category} discussion in ${thread.language}`;
+                    const maxTitleLength = 160 - contextInfo.length;
+                    
+                    if (thread.name.length > maxTitleLength) {
+                        threadDescription = thread.name.substring(0, maxTitleLength - 3) + '...' + contextInfo;
+                    } else {
+                        threadDescription = thread.name + contextInfo;
+                    }
+                }
+            } else {
+                // No posts available, enhance with category and language info
+                const contextInfo = ` - ${thread.category} discussion in ${thread.language}`;
+                const maxTitleLength = 160 - contextInfo.length;
+                
+                if (thread.name.length > maxTitleLength) {
+                    threadDescription = thread.name.substring(0, maxTitleLength - 3) + '...' + contextInfo;
+                } else {
+                    threadDescription = thread.name + contextInfo;
+                }
+            }
                 
             updateSEO({
                 title: thread.name,
                 description: threadDescription,
                 url: `/threads/${threadId}`,
                 keywords: `${thread.name}, ${thread.language}, ${thread.category}, Regnum Online, Champions of Regnum, forum, discussion`,
-                type: 'article'
+                type: 'article',
+                author: thread.threadCreator,
+                publishedTime: thread.createdTime,
+                modifiedTime: thread.lastPostTime || thread.createdTime,
+                section: thread.category,
+                imageAlt: `${thread.name} - ${thread.category} discussion in ${thread.language}`
             });
             
-            // Generate structured data for the thread
-            generateStructuredData('Article', {
+            // Generate structured data for the thread with enhanced content
+            const structuredDataPayload = {
                 headline: thread.name,
                 description: threadDescription,
                 author: {
@@ -415,13 +527,31 @@ class ForumApplication {
                 },
                 publisher: {
                     '@type': 'Organization',
-                    name: 'Regnum Online Forum Archive'
+                    name: 'Regnum Online Forum Archive',
+                    logo: {
+                        '@type': 'ImageObject',
+                        url: window.location.origin + '/assets/cor-logo.png'
+                    }
                 },
                 datePublished: thread.createdTime,
                 dateModified: thread.lastPostTime || thread.createdTime,
                 articleSection: thread.category,
-                inLanguage: thread.language
-            });
+                inLanguage: thread.language,
+                mainEntityOfPage: {
+                    '@type': 'WebPage',
+                    '@id': window.location.href
+                }
+            };
+            
+            // Add article body if we have first post content
+            if (posts && posts.length > 0 && posts[0].message) {
+                const cleanContent = posts[0].message.replace(/<[^>]*>/g, '').trim();
+                if (cleanContent.length > 10) {
+                    structuredDataPayload.articleBody = cleanContent.substring(0, 500) + (cleanContent.length > 500 ? '...' : '');
+                }
+            }
+            
+            generateStructuredData('Article', structuredDataPayload);
             
             // Generate breadcrumb structured data
             generateBreadcrumbStructuredData(breadcrumbs);
@@ -476,17 +606,43 @@ class ForumApplication {
         ];
         this.updateBreadcrumb(breadcrumbs);
         
-        // Update SEO for users page
-        const usersTitle = search ? `Search: "${search}" - Users` : 'Community Members';
+        // Update SEO for users page with enhanced metadata
+        const usersTitle = search ? `"${search}" - User Search Results` : 'Community Members - Regnum Online Forum Archive';
         const usersDescription = search ? 
-            `Search results for "${search}" among Champions of Regnum community members.` :
-            'Browse the Champions of Regnum community members and their forum participation.';
+            `Search results for "${search}" among Champions of Regnum community members. Find forum contributors, active players, and community participants.` :
+            'Browse Champions of Regnum community members and their forum participation. Discover active players, forum contributors, and community statistics.';
+        const usersUrl = search ? `/users?search=${encodeURIComponent(search)}` : '/users';
+        const usersKeywords = search ? 
+            `${search}, user search, members, community, Regnum Online, Champions of Regnum, forum archive, players, contributors` :
+            'users, members, community, Regnum Online, Champions of Regnum, forum archive, players, contributors, statistics';
             
         updateSEO({
             title: usersTitle,
             description: usersDescription,
-            url: search ? `/users?search=${encodeURIComponent(search)}` : '/users',
-            keywords: `${search || 'users'}, members, community, Regnum Online, Champions of Regnum, forum archive`
+            url: usersUrl,
+            keywords: usersKeywords,
+            type: 'website',
+            locale: 'en_US'
+        });
+        
+        // Generate structured data for users page
+        generateStructuredData('CollectionPage', {
+            name: usersTitle,
+            description: usersDescription,
+            url: window.location.origin + usersUrl,
+            mainEntity: {
+                '@type': 'ItemList',
+                name: 'Community Members',
+                description: 'List of Champions of Regnum community members'
+            },
+            publisher: {
+                '@type': 'Organization',
+                name: 'Champions of Regnum Community',
+                logo: {
+                    '@type': 'ImageObject',
+                    url: window.location.origin + '/assets/cor-logo.png'
+                }
+            }
         });
         
         // Generate breadcrumb structured data
@@ -495,7 +651,7 @@ class ForumApplication {
         try {
             showLoading('main-content');
             
-            const response = await usersAPI.getUsers({ search, page, limit: 50 });
+            const response = await usersAPI.getUsers({ search, page, limit: 20 });
             
             if (!response.success) {
                 throw new Error('Failed to load users');
@@ -563,9 +719,70 @@ class ForumApplication {
             const user = response.data;
             
             this.updateBreadcrumb([
-                { text: 'Forum', icon: 'bi-house', action: 'navigateToHome()' },
-                { text: 'Users', action: 'navigateToUsers()' },
-                { text: user.name }
+                { text: 'Forum', icon: 'bi-house', action: 'navigateToHome()', url: '/' },
+                { text: 'Users', action: 'navigateToUsers()', url: '/users' },
+                { text: user.name, url: `/users/${userId}` }
+            ]);
+            
+            // Update SEO for user profile page
+            const profileTitle = `${user.name} - Community Member Profile`;
+            const profileDescription = `View ${user.name}'s profile in the Champions of Regnum community. ${user.postCount || 0} posts, ${user.threadCount || 0} threads. Member since ${user.firstPost || 'unknown'}.`;
+            const profileUrl = `/users/${userId}`;
+            const profileKeywords = `${user.name}, user profile, community member, Regnum Online, Champions of Regnum, forum archive, posts, threads, ${user.postCount || 0} posts`;
+            
+            updateSEO({
+                title: profileTitle,
+                description: profileDescription,
+                url: profileUrl,
+                keywords: profileKeywords,
+                type: 'profile',
+                author: user.name,
+                locale: 'en_US'
+            });
+            
+            // Generate structured data for user profile
+            generateStructuredData('ProfilePage', {
+                name: profileTitle,
+                description: profileDescription,
+                url: window.location.origin + profileUrl,
+                mainEntity: {
+                    '@type': 'Person',
+                    name: user.name,
+                    identifier: userId,
+                    memberOf: {
+                        '@type': 'Organization',
+                        name: 'Champions of Regnum Community'
+                    },
+                    agentInteractionStatistic: [
+                        {
+                            '@type': 'InteractionCounter',
+                            interactionType: 'https://schema.org/CreateAction',
+                            name: 'Posts Created',
+                            userInteractionCount: user.postCount || 0
+                        },
+                        {
+                            '@type': 'InteractionCounter',
+                            interactionType: 'https://schema.org/CreateAction',
+                            name: 'Threads Created',
+                            userInteractionCount: user.threadCount || 0
+                        }
+                    ]
+                },
+                publisher: {
+                    '@type': 'Organization',
+                    name: 'Champions of Regnum Community',
+                    logo: {
+                        '@type': 'ImageObject',
+                        url: window.location.origin + '/assets/cor-logo.png'
+                    }
+                }
+            });
+            
+            // Generate breadcrumb structured data
+            generateBreadcrumbStructuredData([
+                { text: 'Forum', url: window.location.origin + '/' },
+                { text: 'Users', url: window.location.origin + '/users' },
+                { text: user.name, url: window.location.origin + profileUrl }
             ]);
             
             // Load user posts and threads with pagination
@@ -581,8 +798,8 @@ class ForumApplication {
             const postsPagination = userPostsResponse.success ? userPostsResponse.data.pagination : null;
             const threadsPagination = userThreadsResponse.success ? userThreadsResponse.data.pagination : null;
             
-            // Determine active tab
-            const activeTab = params.tab || 'threads';
+            // Determine active tab - posts first by default
+            const activeTab = params.tab || 'posts';
             
             // Build comprehensive user profile with tabs
             const content = `
@@ -631,16 +848,6 @@ class ForumApplication {
                         <div class="card-header p-0">
                             <ul class="nav nav-tabs card-header-tabs" role="tablist">
                                 <li class="nav-item" role="presentation">
-                                    <a class="nav-link ${activeTab === 'threads' ? 'active' : ''}" 
-                                       href="#" 
-                                       onclick="event.preventDefault(); switchUserTab('threads', ${userId}); return false;"
-                                       role="tab">
-                                        <i class="bi bi-chat-text"></i> 
-                                        Threads 
-                                        <span class="badge bg-light text-dark ms-1">${user.threadCount || 0}</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item" role="presentation">
                                     <a class="nav-link ${activeTab === 'posts' ? 'active' : ''}" 
                                        href="#" 
                                        onclick="event.preventDefault(); switchUserTab('posts', ${userId}); return false;"
@@ -650,9 +857,82 @@ class ForumApplication {
                                         <span class="badge bg-light text-dark ms-1">${user.postCount || 0}</span>
                                     </a>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link ${activeTab === 'threads' ? 'active' : ''}" 
+                                       href="#" 
+                                       onclick="event.preventDefault(); switchUserTab('threads', ${userId}); return false;"
+                                       role="tab">
+                                        <i class="bi bi-chat-text"></i> 
+                                        Threads 
+                                        <span class="badge bg-light text-dark ms-1">${user.threadCount || 0}</span>
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                         <div class="card-body">
+                            <!-- Posts Tab Content -->
+                            <div class="tab-content ${activeTab === 'posts' ? '' : 'd-none'}" id="posts-tab">
+                                ${postsPagination ? `
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0">User Posts</h6>
+                                        <small class="text-muted">Page ${postsPagination.page} of ${postsPagination.totalPages} (${postsPagination.totalPosts} total)</small>
+                                    </div>
+                                ` : ''}
+                                
+                                ${userPosts.length > 0 ? `
+                                    <div class="list-group list-group-flush">
+                                        ${userPosts.map(post => `
+                                            <div class="list-group-item list-group-item-action" onclick="navigateToThread(${post.threadId})" style="cursor: pointer;">
+                                                <div class="d-flex w-100 justify-content-between">
+                                                    <h6 class="mb-1">${post.threadName || 'Untitled Thread'}</h6>
+                                                    <small class="text-muted">${post.createdTime || 'No date'}</small>
+                                                </div>
+                                                <p class="mb-2 text-truncate" style="max-height: 3rem; overflow: hidden;">
+                                                    ${post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No content'}
+                                                </p>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">
+                                                        <span class="badge bg-secondary me-1">${post.language || 'Unknown'}</span>
+                                                        <span class="badge bg-info">${post.category || 'General'}</span>
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    
+                                    ${postsPagination && postsPagination.totalPages > 1 ? `
+                                        <nav class="mt-4" aria-label="Posts pagination">
+                                            <ul class="pagination justify-content-center">
+                                                ${postsPagination.hasPrev ? `
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${postsPagination.page - 1}); return false;">
+                                                            <i class="bi bi-chevron-left"></i> Previous
+                                                        </a>
+                                                    </li>
+                                                ` : ''}
+                                                
+                                                ${Array.from({length: Math.min(5, postsPagination.totalPages)}, (_, i) => {
+                                                    const pageNum = Math.max(1, Math.min(postsPagination.totalPages, postsPagination.page - 2 + i));
+                                                    return `
+                                                        <li class="page-item ${pageNum === postsPagination.page ? 'active' : ''}">
+                                                            <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${pageNum}); return false;">${pageNum}</a>
+                                                        </li>
+                                                    `;
+                                                }).join('')}
+                                                
+                                                ${postsPagination.hasMore ? `
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${postsPagination.page + 1}); return false;">
+                                                            Next <i class="bi bi-chevron-right"></i>
+                                                        </a>
+                                                    </li>
+                                                ` : ''}
+                                            </ul>
+                                        </nav>
+                                    ` : ''}
+                                ` : '<div class="text-center py-5 text-muted"><i class="bi bi-chat-dots display-1 opacity-25"></i><p class="mt-3">No posts found for this user.</p></div>'}
+                            </div>
+                            
                             <!-- Threads Tab Content -->
                             <div class="tab-content ${activeTab === 'threads' ? '' : 'd-none'}" id="threads-tab">
                                 ${threadsPagination ? `
@@ -714,84 +994,6 @@ class ForumApplication {
                                     ` : ''}
                                 ` : '<div class="text-center py-5 text-muted"><i class="bi bi-chat-text display-1 opacity-25"></i><p class="mt-3">No threads found for this user.</p></div>'}
                             </div>
-                            
-                            <!-- Posts Tab Content -->
-                            <div class="tab-content ${activeTab === 'posts' ? '' : 'd-none'}" id="posts-tab">
-                                ${postsPagination ? `
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h6 class="mb-0">User Posts</h6>
-                                        <small class="text-muted">Page ${postsPagination.page} of ${postsPagination.totalPages} (${postsPagination.totalPosts} total)</small>
-                                    </div>
-                                ` : ''}
-                                
-                                ${userPosts.length > 0 ? `
-                                    <div class="list-group list-group-flush">
-                                        ${userPosts.map(post => {
-                                            // Clean and escape the message content
-                                            const cleanMessage = post.message ? 
-                                                post.message
-                                                    .replace(/<[^>]*>/g, '') // Remove HTML tags
-                                                    .replace(/&/g, '&amp;')
-                                                    .replace(/</g, '&lt;')
-                                                    .replace(/>/g, '&gt;')
-                                                    .replace(/"/g, '&quot;')
-                                                    .substring(0, 200) + (post.message.length > 200 ? '...' : '')
-                                                : 'No content available';
-                                            
-                                            const cleanThreadName = post.threadName ? 
-                                                post.threadName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') 
-                                                : 'Unknown Thread';
-                                            
-                                            return `
-                                                <div class="list-group-item list-group-item-action" onclick="navigateToThread(${post.threadId})" style="cursor: pointer;">
-                                                    <div class="d-flex w-100 justify-content-between align-items-start">
-                                                        <h6 class="mb-1 text-truncate pe-2">Re: ${cleanThreadName}</h6>
-                                                        <small class="text-muted flex-shrink-0">${post.timestamp || 'No date'}</small>
-                                                    </div>
-                                                    <p class="mb-2 text-muted">${cleanMessage}</p>
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <small class="text-muted">
-                                                            Thread: ${cleanThreadName}
-                                                        </small>
-                                                        <span class="badge bg-secondary">Post #${post.postNo || '?'}</span>
-                                                    </div>
-                                                </div>
-                                            `;
-                                        }).join('')}
-                                    </div>
-                                    
-                                    ${postsPagination && postsPagination.totalPages > 1 ? `
-                                        <nav class="mt-4" aria-label="Posts pagination">
-                                            <ul class="pagination justify-content-center">
-                                                ${postsPagination.hasPrev ? `
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${postsPagination.page - 1}); return false;">
-                                                            <i class="bi bi-chevron-left"></i> Previous
-                                                        </a>
-                                                    </li>
-                                                ` : ''}
-                                                
-                                                ${Array.from({length: Math.min(5, postsPagination.totalPages)}, (_, i) => {
-                                                    const pageNum = Math.max(1, Math.min(postsPagination.totalPages, postsPagination.page - 2 + i));
-                                                    return `
-                                                        <li class="page-item ${pageNum === postsPagination.page ? 'active' : ''}">
-                                                            <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${pageNum}); return false;">${pageNum}</a>
-                                                        </li>
-                                                    `;
-                                                }).join('')}
-                                                
-                                                ${postsPagination.hasMore ? `
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${postsPagination.page + 1}); return false;">
-                                                            Next <i class="bi bi-chevron-right"></i>
-                                                        </a>
-                                                    </li>
-                                                ` : ''}
-                                            </ul>
-                                        </nav>
-                                    ` : ''}
-                                ` : '<div class="text-center py-5 text-muted"><i class="bi bi-chat-dots display-1 opacity-25"></i><p class="mt-3">No posts found for this user.</p></div>'}
-                            </div>
                         </div>
                     </div>
                     
@@ -847,133 +1049,21 @@ class ForumApplication {
         this.loadUserProfilePage(userId, params);
     }
     
-    // Load statistics page
-    async loadStatsPage(params = {}) {
-        const breadcrumbs = [
-            { text: 'Forum', icon: 'bi-house', action: 'navigateToHome()', url: '/' },
-            { text: 'Statistics', url: '/stats' }
-        ];
-        this.updateBreadcrumb(breadcrumbs);
-        
-        // Update SEO for statistics page
-        updateSEO({
-            title: 'Forum Statistics',
-            description: 'Champions of Regnum forum archive statistics including post counts, active users, languages, and community analytics.',
-            url: '/stats',
-            keywords: 'statistics, analytics, forum stats, Regnum Online, Champions of Regnum, community data, post counts, users'
-        });
-        
-        // Generate breadcrumb structured data
-        generateBreadcrumbStructuredData(breadcrumbs);
-        
+    // Load stats for footer display
+    async loadFooterStats() {
         try {
-            showLoading('main-content');
-            
-            const response = await statsAPI.getStats();
-            
-            if (!response.success) {
-                throw new Error('Failed to load statistics');
+            const response = await statsAPI.getOverview();
+            if (response.success && response.data) {
+                const stats = response.data;
+                document.getElementById('stats-users').textContent = formatNumber(stats.totalUsers || 0);
+                document.getElementById('stats-threads').textContent = formatNumber(stats.totalThreads || 0);
+                document.getElementById('stats-posts').textContent = formatNumber(stats.totalPosts || 0);
             }
-            
-            const stats = response.data;
-            
-            // Ensure stats has required structure
-            if (!stats) {
-                throw new Error('No statistics data available');
-            }
-            
-            // Provide defaults for missing data and ensure correct structure\n            stats.languages = stats.languages || [];\n            stats.mostActiveUsers = stats.mostActiveUsers || [];\n            \n            // Ensure overview structure exists for createStatsCards\n            if (!stats.overview) {\n                console.warn('Stats overview missing, creating default structure');\n                stats.overview = {\n                    totalUsers: stats.totalUsers || 0,\n                    totalThreads: stats.totalThreads || 0,\n                    totalPosts: stats.totalPosts || 0,\n                    totalLanguages: stats.totalLanguages || 0\n                };\n            }"            let content = '';
-            
-            // Add container wrapper (no page header to avoid double logo)
-            content += '<div class="container">';
-            
-            // Add page title
-            content += `
-                <div class="mb-4">
-                    <h2><i class="bi bi-bar-chart-fill"></i> Forum Statistics</h2>
-                    <p class="text-muted">Forum Archive Analytics</p>
-                </div>
-            `;
-            
-            content += createStatsCards(stats);
-            
-            // Add detailed statistics sections
-            content += `
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header">
-                                <h5 class="mb-0"><i class="bi bi-translate"></i> Languages</h5>
-                            </div>
-                            <div class="card-body">
-                                ${stats.languages && stats.languages.length > 0 ? stats.languages.map(lang => `
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <div>
-                                            <strong>${lang.flag || '🌐'} ${lang.language || 'Unknown'}</strong>
-                                        </div>
-                                        <div class="text-end">
-                                            <div class="fw-bold text-primary">${(lang.post_count || 0).toLocaleString()} posts</div>
-                                            <small class="text-muted">${(lang.thread_count || 0).toLocaleString()} threads</small>
-                                        </div>
-                                    </div>
-                                    <div class="progress mb-3" style="height: 6px;">
-                                        <div class="progress-bar" style="width: ${lang.percentage || 0}%"></div>
-                                    </div>
-                                `).join('') : '<p class="text-muted">No language data available</p>'}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header">
-                                <h5 class="mb-0"><i class="bi bi-person-badge"></i> Most Active Users</h5>
-                            </div>
-                            <div class="card-body">
-                                ${stats.mostActiveUsers && stats.mostActiveUsers.length > 0 ? stats.mostActiveUsers.slice(0, 15).map((user, index) => `
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <div class="flex-grow-1">
-                                            <span class="badge bg-${index < 3 ? 'warning' : 'secondary'} me-2">${index + 1}</span>
-                                            <strong>${user.name || 'Unknown User'}</strong>
-                                        </div>
-                                        <div class="text-end">
-                                            <span class="text-primary">${(user.post_count || 0).toLocaleString()} posts</span>
-                                        </div>
-                                    </div>
-                                `).join('') : '<p class="text-muted">No user data available</p>'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="text-center mt-4">
-                    <button onclick="navigateToHome()" class="btn btn-primary">
-                        <i class="bi bi-arrow-left"></i> Back to Forum
-                    </button>
-                </div>
-                
-                <!-- Close container wrapper -->
-                </div>
-            `;
-            
-            document.getElementById('main-content').innerHTML = content;
-            
         } catch (error) {
-            console.error('Failed to load statistics:', error);
-            console.error('Error details:', {
-                message: error.message,
-                stack: error.stack
-            });
-            
-            let errorMessage = 'Failed to load statistics. ';
-            if (error.message.includes('overview')) {
-                errorMessage += 'Statistics data structure issue. ';
-            } else if (error.message.includes('network')) {
-                errorMessage += 'Network connection problem. ';
-            }
-            errorMessage += 'Please try refreshing the page.';
-            
-            showError('main-content', errorMessage);
+            console.error('Failed to load footer stats:', error);
+            document.getElementById('stats-users').textContent = 'N/A';
+            document.getElementById('stats-threads').textContent = 'N/A';
+            document.getElementById('stats-posts').textContent = 'N/A';
         }
     }
     
@@ -987,8 +1077,49 @@ class ForumApplication {
         }
         
         this.updateBreadcrumb([
-            { text: 'Forum', icon: 'bi-house', action: 'navigateToHome()' },
-            { text: 'Search Results' }
+            { text: 'Forum', icon: 'bi-house', action: 'navigateToHome()', url: '/' },
+            { text: 'Search Results', url: `/search?search=${encodeURIComponent(search)}` }
+        ]);
+        
+        // Update SEO for search results page
+        const searchTitle = `"${search}" - Search Results`;
+        const searchDescription = `Search results for "${search}" in the Champions of Regnum forum archive. Find threads, posts, and discussions${language ? ` in ${language}` : ''}${category ? ` about ${category}` : ''}.`;
+        const searchUrl = `/search?search=${encodeURIComponent(search)}${language ? `&language=${encodeURIComponent(language)}` : ''}${category ? `&category=${encodeURIComponent(category)}` : ''}`;
+        const searchKeywords = `${search}, search results, Regnum Online, Champions of Regnum, forum archive${language ? `, ${language}` : ''}${category ? `, ${category}` : ''}, threads, posts, discussions`;
+        
+        updateSEO({
+            title: searchTitle,
+            description: searchDescription,
+            url: searchUrl,
+            keywords: searchKeywords,
+            type: 'website',
+            locale: language === 'Español' ? 'es_ES' : language === 'Português' ? 'pt_PT' : language === 'Deutsch' ? 'de_DE' : language === 'Français' ? 'fr_FR' : language === 'Italiano' ? 'it_IT' : 'en_US'
+        });
+        
+        // Generate structured data for search results
+        generateStructuredData('SearchResultsPage', {
+            name: searchTitle,
+            description: searchDescription,
+            url: window.location.origin + searchUrl,
+            mainEntity: {
+                '@type': 'ItemList',
+                name: `Search Results for "${search}"`,
+                description: `Forum threads and discussions matching "${search}"`
+            },
+            publisher: {
+                '@type': 'Organization',
+                name: 'Champions of Regnum Community',
+                logo: {
+                    '@type': 'ImageObject',
+                    url: window.location.origin + '/assets/cor-logo.png'
+                }
+            }
+        });
+        
+        // Generate breadcrumb structured data
+        generateBreadcrumbStructuredData([
+            { text: 'Forum', url: window.location.origin + '/' },
+            { text: 'Search Results', url: window.location.origin + searchUrl }
         ]);
         
         try {

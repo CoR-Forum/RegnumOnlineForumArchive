@@ -399,9 +399,10 @@ class Database {
           ELSE 'Other'
         END as language,
         COUNT(t.id) as thread_count,
-        (SELECT COUNT(*) FROM posts WHERE thread_id IN (
-          SELECT id FROM threads t2 WHERE 
-          CASE 
+        (
+          SELECT COUNT(*) FROM posts p 
+          JOIN threads t2 ON p.thread_id = t2.id 
+          WHERE CASE 
             WHEN t2.path LIKE '%/Español/%' THEN 'Español'
             WHEN t2.path LIKE '%/English/%' THEN 'English'
             WHEN t2.path LIKE '%/Português/%' THEN 'Português'
@@ -409,8 +410,18 @@ class Database {
             WHEN t2.path LIKE '%/Français/%' THEN 'Français'
             WHEN t2.path LIKE '%/Italiano/%' THEN 'Italiano'
             ELSE 'Other'
-          END = language
-        )) as post_count
+          END = (
+            CASE 
+              WHEN t.path LIKE '%/Español/%' THEN 'Español'
+              WHEN t.path LIKE '%/English/%' THEN 'English'
+              WHEN t.path LIKE '%/Português/%' THEN 'Português'
+              WHEN t.path LIKE '%/Deutsch/%' THEN 'Deutsch'
+              WHEN t.path LIKE '%/Français/%' THEN 'Français'
+              WHEN t.path LIKE '%/Italiano/%' THEN 'Italiano'
+              ELSE 'Other'
+            END
+          )
+        ) as post_count
       FROM threads t
       GROUP BY language
       ORDER BY post_count DESC

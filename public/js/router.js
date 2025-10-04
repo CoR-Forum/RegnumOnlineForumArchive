@@ -61,6 +61,15 @@ class Router {
         try {
             console.log('🔧 Executing route handler for:', path, 'with params:', mergedParams);
             routeInfo.route.handler(mergedParams);
+            
+            // Track page view in Google Analytics for SPA navigation
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'page_view', {
+                    page_title: document.title,
+                    page_location: window.location.href,
+                    page_path: path
+                });
+            }
         } catch (error) {
             console.error('Error executing route handler:', error);
             this.showError('Failed to load page');
@@ -221,9 +230,7 @@ export function setupRoutes(forumApp) {
             const threadId = parseInt(params.id);
             forumApp.loadThreadPage(threadId, params);
         }, 'thread-view')
-        .route('/stats', (params) => {
-            forumApp.loadStatsPage(params);
-        }, 'stats')
+
         .route('/search', (params) => {
             forumApp.loadSearchPage(params);
         }, 'search');
@@ -248,9 +255,7 @@ export function setupNavigationFunctions() {
         router.navigate(`/threads/${threadId}`, params);
     };
 
-    window.navigateToStats = (params = {}) => {
-        router.navigate('/stats', params);
-    };
+
 
     window.filterByLanguage = (language, params = {}) => {
         router.navigate('/', { ...params, language });

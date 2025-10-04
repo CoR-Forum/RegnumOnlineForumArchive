@@ -320,11 +320,22 @@ export function updatePageTitle(title, baseTitle = 'Regnum Online Forum Archive'
 
 // Update meta tag content
 export function updateMetaTag(property, content) {
+    if (!content) return; // Don't create empty meta tags
+    
     let selector;
-    if (property.startsWith('og:') || property.startsWith('twitter:')) {
+    let isProperty = false;
+    
+    // Determine if this should use 'property' or 'name' attribute
+    if (property.startsWith('og:') || property.startsWith('article:')) {
+        selector = `meta[property="${property}"]`;
+        isProperty = true;
+    } else if (property.startsWith('twitter:')) {
+        // Twitter can use either property or name, check both
         selector = `meta[property="${property}"], meta[name="${property}"]`;
+        isProperty = false; // Twitter uses 'name' by default
     } else {
         selector = `meta[name="${property}"]`;
+        isProperty = false;
     }
     
     let meta = document.querySelector(selector);
@@ -333,7 +344,7 @@ export function updateMetaTag(property, content) {
     } else {
         // Create meta tag if it doesn't exist
         meta = document.createElement('meta');
-        if (property.startsWith('og:') || property.startsWith('twitter:')) {
+        if (isProperty || property.startsWith('og:') || property.startsWith('article:')) {
             meta.setAttribute('property', property);
         } else {
             meta.setAttribute('name', property);
@@ -364,7 +375,13 @@ export function updateSEO(options = {}) {
         url,
         keywords,
         image = '/assets/cor-logo.png',
-        type = 'website'
+        imageAlt,
+        type = 'website',
+        author,
+        publishedTime,
+        modifiedTime,
+        section,
+        locale = 'en_US'
     } = options;
     
     // Update page title
@@ -386,8 +403,9 @@ export function updateSEO(options = {}) {
     
     // Update canonical URL
     if (url) {
-        updateCanonicalUrl(url);
-        updateMetaTag('og:url', url);
+        const fullUrl = url.startsWith('http') ? url : window.location.origin + url;
+        updateCanonicalUrl(fullUrl);
+        updateMetaTag('og:url', fullUrl);
     }
     
     // Update Open Graph and Twitter Card data
@@ -397,12 +415,41 @@ export function updateSEO(options = {}) {
     }
     
     if (image) {
-        updateMetaTag('og:image', image);
-        updateMetaTag('twitter:image', image);
+        const fullImageUrl = image.startsWith('http') ? image : window.location.origin + image;
+        updateMetaTag('og:image', fullImageUrl);
+        updateMetaTag('twitter:image', fullImageUrl);
+        
+        // Update image alt text
+        const altText = imageAlt || title || 'Regnum Online Forum Archive';
+        updateMetaTag('og:image:alt', altText);
+        updateMetaTag('twitter:image:alt', altText);
     }
     
     if (type) {
         updateMetaTag('og:type', type);
+    }
+    
+    if (locale) {
+        updateMetaTag('og:locale', locale);
+    }
+    
+    // Article-specific meta tags (for forum threads)
+    if (type === 'article') {
+        if (author) {
+            updateMetaTag('article:author', author);
+        }
+        
+        if (publishedTime) {
+            updateMetaTag('article:published_time', publishedTime);
+        }
+        
+        if (modifiedTime) {
+            updateMetaTag('article:modified_time', modifiedTime);
+        }
+        
+        if (section) {
+            updateMetaTag('article:section', section);
+        }
     }
 }
 
