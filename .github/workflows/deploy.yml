@@ -13,10 +13,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Download database
-      run: |
-        wget -O regnumforum.db "${{ vars.DB_URL }}"
-      
     - name: Setup SSH key
       run: |
         mkdir -p ~/.ssh
@@ -32,6 +28,11 @@ jobs:
           --exclude 'node_modules' \
           --exclude '.env.local' \
           ./ ${{ vars.SSH_HOST }}:${{ vars.SSH_PATH }}/
+        
+    - name: Download database on server
+      run: |
+        ssh ${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
+          wget -O regnumforum.db '${{ vars.DB_URL }}'"
         
     - name: Deploy application
       run: |
