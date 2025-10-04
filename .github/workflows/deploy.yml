@@ -48,9 +48,9 @@ jobs:
     - name: Deploy application
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
-          docker-compose down && \
-          docker-compose up -d --build"
+          docker compose down && \
+          docker compose up -d --build"
         
     - name: Verify deployment
       run: |
-        ssh ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && docker-compose ps"
+        ssh ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && docker compose ps"
