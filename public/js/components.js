@@ -375,12 +375,12 @@ export function createPagination(pagination, baseUrl = '#') {
     if (hasPrev) {
         paginationHTML += `
             <li class="page-item">
-                <a class="page-link" href="#" onclick="navigateToPage(1)">
+                <a class="page-link" href="#" onclick="event.preventDefault(); navigateToPage(1); return false;">
                     <i class="bi bi-chevron-double-left"></i>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="#" onclick="navigateToPage(${page - 1})">
+                <a class="page-link" href="#" onclick="event.preventDefault(); navigateToPage(${page - 1}); return false;">
                     <i class="bi bi-chevron-left"></i> Previous
                 </a>
             </li>
@@ -391,7 +391,7 @@ export function createPagination(pagination, baseUrl = '#') {
     for (let i = startPage; i <= endPage; i++) {
         paginationHTML += `
             <li class="page-item ${i === page ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="navigateToPage(${i})">
+                <a class="page-link" href="#" onclick="event.preventDefault(); navigateToPage(${i}); return false;">
                     ${i}
                 </a>
             </li>
@@ -402,12 +402,12 @@ export function createPagination(pagination, baseUrl = '#') {
     if (hasNext) {
         paginationHTML += `
             <li class="page-item">
-                <a class="page-link" href="#" onclick="navigateToPage(${page + 1})">
+                <a class="page-link" href="#" onclick="event.preventDefault(); navigateToPage(${page + 1}); return false;">
                     Next <i class="bi bi-chevron-right"></i>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="#" onclick="navigateToPage(${totalPages})">
+                <a class="page-link" href="#" onclick="event.preventDefault(); navigateToPage(${totalPages}); return false;">
                     <i class="bi bi-chevron-double-right"></i>
                 </a>
             </li>
@@ -552,13 +552,9 @@ export function createThreadHeader(thread) {
                     </div>
                     <div class="col-md-4 text-md-end">
                         <div class="stats-info">
-                            <span class="badge bg-primary me-2">
+                            <span class="badge bg-primary">
                                 <i class="bi bi-chat-dots"></i>
                                 ${formatNumber(thread.postCount || 0)} posts
-                            </span>
-                            <span class="badge bg-info" id="thread-viewers">
-                                <i class="bi bi-eye"></i>
-                                1 viewing
                             </span>
                         </div>
                     </div>

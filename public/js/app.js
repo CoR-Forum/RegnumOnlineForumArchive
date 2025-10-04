@@ -505,11 +505,16 @@ class ForumApplication {
             
             let content = '';
             
-            // Add consistent page header
-            content += createPageHeader('Users', 'Community Members', 'bi-people-fill');
-            
-            // Add container wrapper
+            // Add container wrapper (no page header to avoid double logo)
             content += '<div class="container">';
+            
+            // Add page title
+            content += `
+                <div class="mb-4">
+                    <h2><i class="bi bi-people-fill"></i> Community Members</h2>
+                    <p class="text-muted">Browse the Champions of Regnum community members and their forum participation.</p>
+                </div>
+            `;
             
             // Add search info if searching
             if (search) {
@@ -563,52 +568,238 @@ class ForumApplication {
                 { text: user.name }
             ]);
             
-            // User profile content would go here
-            // This is a simplified version
+            // Load user posts and threads with pagination
+            const postsPage = params.postsPage || 1;
+            const threadsPage = params.threadsPage || 1;
+            const [userPostsResponse, userThreadsResponse] = await Promise.all([
+                usersAPI.getUserPosts(userId, postsPage, 20),
+                usersAPI.getUserThreads(userId, threadsPage, 20)
+            ]);
+            
+            const userPosts = userPostsResponse.success ? userPostsResponse.data.posts || [] : [];
+            const userThreads = userThreadsResponse.success ? userThreadsResponse.data.threads || [] : [];
+            const postsPagination = userPostsResponse.success ? userPostsResponse.data.pagination : null;
+            const threadsPagination = userThreadsResponse.success ? userThreadsResponse.data.pagination : null;
+            
+            // Determine active tab
+            const activeTab = params.tab || 'threads';
+            
+            // Build comprehensive user profile with tabs
             const content = `
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="bi bi-person-circle"></i> ${user.name}</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="text-center mb-3">
-                                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-person-fill fs-2"></i>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-9">
-                                <div class="row mb-3">
-                                    <div class="col-sm-6">
-                                        <div class="card text-center">
-                                            <div class="card-body">
-                                                <h4 class="text-primary">${user.postCount || 0}</h4>
-                                                <p class="text-muted mb-0">Posts</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <div class="card text-center">
-                                            <div class="card-body">
-                                                <h4 class="text-success">${user.threadCount || 0}</h4>
-                                                <p class="text-muted mb-0">Threads</p>
-                                            </div>
+                <div class="container">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h3><i class="bi bi-person-circle"></i> ${user.name}</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="text-center mb-3">
+                                        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                            <i class="bi bi-person-fill fs-2"></i>
                                         </div>
                                     </div>
                                 </div>
-                                ${user.firstPost ? `<p><i class="bi bi-calendar-plus"></i> Joined: ${user.firstPost}</p>` : ''}
-                                ${user.lastPost ? `<p><i class="bi bi-clock"></i> Last seen: ${user.lastPost}</p>` : ''}
+                                <div class="col-md-9">
+                                    <div class="row mb-3">
+                                        <div class="col-sm-6">
+                                            <div class="card text-center">
+                                                <div class="card-body">
+                                                    <h4 class="text-primary">${user.postCount || 0}</h4>
+                                                    <p class="text-muted mb-0">Posts</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="card text-center">
+                                                <div class="card-body">
+                                                    <h4 class="text-success">${user.threadCount || 0}</h4>
+                                                    <p class="text-muted mb-0">Threads</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ${user.firstPost ? `<p><i class="bi bi-calendar-plus"></i> Joined: ${user.firstPost}</p>` : ''}
+                                    ${user.lastPost ? `<p><i class="bi bi-clock"></i> Last seen: ${user.lastPost}</p>` : ''}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="text-center mt-4">
-                    <button onclick="navigateToUsers()" class="btn btn-outline-primary">
-                        <i class="bi bi-arrow-left"></i> Back to Users
-                    </button>
+                    
+                    <!-- Tabbed Navigation -->
+                    <div class="card">
+                        <div class="card-header p-0">
+                            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link ${activeTab === 'threads' ? 'active' : ''}" 
+                                       href="#" 
+                                       onclick="event.preventDefault(); switchUserTab('threads', ${userId}); return false;"
+                                       role="tab">
+                                        <i class="bi bi-chat-text"></i> 
+                                        Threads 
+                                        <span class="badge bg-light text-dark ms-1">${user.threadCount || 0}</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link ${activeTab === 'posts' ? 'active' : ''}" 
+                                       href="#" 
+                                       onclick="event.preventDefault(); switchUserTab('posts', ${userId}); return false;"
+                                       role="tab">
+                                        <i class="bi bi-chat-dots"></i> 
+                                        Posts 
+                                        <span class="badge bg-light text-dark ms-1">${user.postCount || 0}</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <!-- Threads Tab Content -->
+                            <div class="tab-content ${activeTab === 'threads' ? '' : 'd-none'}" id="threads-tab">
+                                ${threadsPagination ? `
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0">User Threads</h6>
+                                        <small class="text-muted">Page ${threadsPagination.page} of ${threadsPagination.totalPages} (${threadsPagination.totalThreads} total)</small>
+                                    </div>
+                                ` : ''}
+                                
+                                ${userThreads.length > 0 ? `
+                                    <div class="list-group list-group-flush">
+                                        ${userThreads.map(thread => `
+                                            <div class="list-group-item list-group-item-action" onclick="navigateToThread(${thread.id})" style="cursor: pointer;">
+                                                <div class="d-flex w-100 justify-content-between">
+                                                    <h6 class="mb-1">${thread.name || 'Untitled Thread'}</h6>
+                                                    <small class="text-muted">${thread.createdTime || 'No date'}</small>
+                                                </div>
+                                                <p class="mb-1 text-muted">
+                                                    <span class="badge bg-secondary me-2">${thread.language || 'Unknown'}</span>
+                                                    <span class="badge bg-info">${thread.category || 'General'}</span>
+                                                </p>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">${thread.postCount || 0} posts</small>
+                                                    ${thread.lastPostTime ? `<small class="text-muted">Last: ${thread.lastPostTime}</small>` : ''}
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    
+                                    ${threadsPagination && threadsPagination.totalPages > 1 ? `
+                                        <nav class="mt-4" aria-label="Threads pagination">
+                                            <ul class="pagination justify-content-center">
+                                                ${threadsPagination.hasPrev ? `
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('threads', ${userId}, ${threadsPagination.page - 1}); return false;">
+                                                            <i class="bi bi-chevron-left"></i> Previous
+                                                        </a>
+                                                    </li>
+                                                ` : ''}
+                                                
+                                                ${Array.from({length: Math.min(5, threadsPagination.totalPages)}, (_, i) => {
+                                                    const pageNum = Math.max(1, Math.min(threadsPagination.totalPages, threadsPagination.page - 2 + i));
+                                                    return `
+                                                        <li class="page-item ${pageNum === threadsPagination.page ? 'active' : ''}">
+                                                            <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('threads', ${userId}, ${pageNum}); return false;">${pageNum}</a>
+                                                        </li>
+                                                    `;
+                                                }).join('')}
+                                                
+                                                ${threadsPagination.hasMore ? `
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('threads', ${userId}, ${threadsPagination.page + 1}); return false;">
+                                                            Next <i class="bi bi-chevron-right"></i>
+                                                        </a>
+                                                    </li>
+                                                ` : ''}
+                                            </ul>
+                                        </nav>
+                                    ` : ''}
+                                ` : '<div class="text-center py-5 text-muted"><i class="bi bi-chat-text display-1 opacity-25"></i><p class="mt-3">No threads found for this user.</p></div>'}
+                            </div>
+                            
+                            <!-- Posts Tab Content -->
+                            <div class="tab-content ${activeTab === 'posts' ? '' : 'd-none'}" id="posts-tab">
+                                ${postsPagination ? `
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0">User Posts</h6>
+                                        <small class="text-muted">Page ${postsPagination.page} of ${postsPagination.totalPages} (${postsPagination.totalPosts} total)</small>
+                                    </div>
+                                ` : ''}
+                                
+                                ${userPosts.length > 0 ? `
+                                    <div class="list-group list-group-flush">
+                                        ${userPosts.map(post => {
+                                            // Clean and escape the message content
+                                            const cleanMessage = post.message ? 
+                                                post.message
+                                                    .replace(/<[^>]*>/g, '') // Remove HTML tags
+                                                    .replace(/&/g, '&amp;')
+                                                    .replace(/</g, '&lt;')
+                                                    .replace(/>/g, '&gt;')
+                                                    .replace(/"/g, '&quot;')
+                                                    .substring(0, 200) + (post.message.length > 200 ? '...' : '')
+                                                : 'No content available';
+                                            
+                                            const cleanThreadName = post.threadName ? 
+                                                post.threadName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') 
+                                                : 'Unknown Thread';
+                                            
+                                            return `
+                                                <div class="list-group-item list-group-item-action" onclick="navigateToThread(${post.threadId})" style="cursor: pointer;">
+                                                    <div class="d-flex w-100 justify-content-between align-items-start">
+                                                        <h6 class="mb-1 text-truncate pe-2">Re: ${cleanThreadName}</h6>
+                                                        <small class="text-muted flex-shrink-0">${post.timestamp || 'No date'}</small>
+                                                    </div>
+                                                    <p class="mb-2 text-muted">${cleanMessage}</p>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <small class="text-muted">
+                                                            Thread: ${cleanThreadName}
+                                                        </small>
+                                                        <span class="badge bg-secondary">Post #${post.postNo || '?'}</span>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                    
+                                    ${postsPagination && postsPagination.totalPages > 1 ? `
+                                        <nav class="mt-4" aria-label="Posts pagination">
+                                            <ul class="pagination justify-content-center">
+                                                ${postsPagination.hasPrev ? `
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${postsPagination.page - 1}); return false;">
+                                                            <i class="bi bi-chevron-left"></i> Previous
+                                                        </a>
+                                                    </li>
+                                                ` : ''}
+                                                
+                                                ${Array.from({length: Math.min(5, postsPagination.totalPages)}, (_, i) => {
+                                                    const pageNum = Math.max(1, Math.min(postsPagination.totalPages, postsPagination.page - 2 + i));
+                                                    return `
+                                                        <li class="page-item ${pageNum === postsPagination.page ? 'active' : ''}">
+                                                            <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${pageNum}); return false;">${pageNum}</a>
+                                                        </li>
+                                                    `;
+                                                }).join('')}
+                                                
+                                                ${postsPagination.hasMore ? `
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${postsPagination.page + 1}); return false;">
+                                                            Next <i class="bi bi-chevron-right"></i>
+                                                        </a>
+                                                    </li>
+                                                ` : ''}
+                                            </ul>
+                                        </nav>
+                                    ` : ''}
+                                ` : '<div class="text-center py-5 text-muted"><i class="bi bi-chat-dots display-1 opacity-25"></i><p class="mt-3">No posts found for this user.</p></div>'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button onclick="navigateToUsers()" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-left"></i> Back to Users
+                        </button>
+                    </div>
                 </div>
             `;
             
@@ -618,6 +809,42 @@ class ForumApplication {
             console.error('Failed to load user profile:', error);
             showError('main-content', 'Failed to load user profile. Please try again.');
         }
+    }
+
+    // Handle tab switching for user profiles
+    switchUserTab(tab, userId) {
+        const params = { 
+            tab,
+            threadsPage: tab === 'threads' ? 1 : undefined,
+            postsPage: tab === 'posts' ? 1 : undefined
+        };
+        
+        // Update URL to reflect tab change
+        const url = `/users/${userId}?tab=${tab}`;
+        window.history.pushState({ page: 'user', userId, tab }, '', url);
+        
+        this.loadUserProfilePage(userId, params);
+    }
+
+    // Navigate to user profile with specific tab and page
+    navigateToUserTab(tab, userId, page) {
+        const params = { tab };
+        if (tab === 'threads') {
+            params.threadsPage = page;
+        } else if (tab === 'posts') {
+            params.postsPage = page;
+        }
+        
+        // Build URL with proper parameters
+        let url = `/users/${userId}?tab=${tab}`;
+        if (tab === 'threads') {
+            url += `&threadsPage=${page}`;
+        } else if (tab === 'posts') {
+            url += `&postsPage=${page}`;
+        }
+        
+        window.history.pushState({ page: 'user', userId, tab, params }, '', url);
+        this.loadUserProfilePage(userId, params);
     }
     
     // Load statistics page
@@ -655,17 +882,18 @@ class ForumApplication {
                 throw new Error('No statistics data available');
             }
             
-            // Provide defaults for missing data
-            stats.languages = stats.languages || [];
-            stats.mostActiveUsers = stats.mostActiveUsers || [];
+            // Provide defaults for missing data and ensure correct structure\n            stats.languages = stats.languages || [];\n            stats.mostActiveUsers = stats.mostActiveUsers || [];\n            \n            // Ensure overview structure exists for createStatsCards\n            if (!stats.overview) {\n                console.warn('Stats overview missing, creating default structure');\n                stats.overview = {\n                    totalUsers: stats.totalUsers || 0,\n                    totalThreads: stats.totalThreads || 0,\n                    totalPosts: stats.totalPosts || 0,\n                    totalLanguages: stats.totalLanguages || 0\n                };\n            }"            let content = '';
             
-            let content = '';
-            
-            // Add consistent page header
-            content += createPageHeader('Statistics', 'Forum Archive Analytics', 'bi-bar-chart-fill');
-            
-            // Add container wrapper
+            // Add container wrapper (no page header to avoid double logo)
             content += '<div class="container">';
+            
+            // Add page title
+            content += `
+                <div class="mb-4">
+                    <h2><i class="bi bi-bar-chart-fill"></i> Forum Statistics</h2>
+                    <p class="text-muted">Forum Archive Analytics</p>
+                </div>
+            `;
             
             content += createStatsCards(stats);
             
@@ -732,7 +960,20 @@ class ForumApplication {
             
         } catch (error) {
             console.error('Failed to load statistics:', error);
-            showError('main-content', 'Failed to load statistics. Please try again.');
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+            
+            let errorMessage = 'Failed to load statistics. ';
+            if (error.message.includes('overview')) {
+                errorMessage += 'Statistics data structure issue. ';
+            } else if (error.message.includes('network')) {
+                errorMessage += 'Network connection problem. ';
+            }
+            errorMessage += 'Please try refreshing the page.';
+            
+            showError('main-content', errorMessage);
         }
     }
     
@@ -848,6 +1089,19 @@ class ForumApplication {
             'Italiano': '🇮🇹'
         };
         return flags[language] || '🌐';
+    }
+    
+    // Expose scroll position management methods
+    saveScrollPosition(key = 'homepage') {
+        saveScrollPosition(key);
+    }
+    
+    restoreScrollPosition(key = 'homepage', delay = 100) {
+        return restoreScrollPosition(key, delay);
+    }
+    
+    clearScrollPosition(key = 'homepage') {
+        clearScrollPosition(key);
     }
 }
 
