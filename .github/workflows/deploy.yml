@@ -23,13 +23,13 @@ jobs:
     - name: Debug SSH variables
       run: |
         echo "SSH_HOST: ${{ vars.SSH_HOST }}"
-        echo "SSH_USER: ${{ vars.SSH_USER }}"
+        echo "SSH_USER: ${{ secrets.SSH_USER }}"
         echo "SSH_PATH: ${{ vars.SSH_PATH }}"
-        echo "Connection string: ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}"
+        echo "Connection string: ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST }}"
         
     - name: Test SSH connection
       run: |
-        ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "echo 'SSH connection successful'"
+        ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST }} "echo 'SSH connection successful'"
         
     - name: Copy files to server
       run: |
@@ -38,19 +38,19 @@ jobs:
           --exclude '.github' \
           --exclude 'node_modules' \
           --exclude '.env.local' \
-          ./ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:${{ vars.SSH_PATH }}/
+          ./ ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST }}:${{ vars.SSH_PATH }}/
         
     - name: Download database on server
       run: |
-        ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
+        ssh ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
           wget -O regnumforum.db '${{ vars.DB_URL }}'"
         
     - name: Deploy application
       run: |
-        ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
+        ssh ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
           docker-compose down && \
           docker-compose up -d --build"
         
     - name: Verify deployment
       run: |
-        ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && docker-compose ps"
+        ssh ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && docker-compose ps"
