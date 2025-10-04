@@ -27,19 +27,19 @@ jobs:
           --exclude '.github' \
           --exclude 'node_modules' \
           --exclude '.env.local' \
-          ./ ${{ vars.SSH_HOST }}:${{ vars.SSH_PATH }}/
+          ./ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:${{ vars.SSH_PATH }}/
         
     - name: Download database on server
       run: |
-        ssh ${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
+        ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
           wget -O regnumforum.db '${{ vars.DB_URL }}'"
         
     - name: Deploy application
       run: |
-        ssh ${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
+        ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
           docker-compose down && \
           docker-compose up -d --build"
         
     - name: Verify deployment
       run: |
-        ssh ${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && docker-compose ps"
+        ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && docker-compose ps"
