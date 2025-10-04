@@ -20,6 +20,17 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ vars.SSH_HOST }} >> ~/.ssh/known_hosts
         
+    - name: Debug SSH variables
+      run: |
+        echo "SSH_HOST: ${{ vars.SSH_HOST }}"
+        echo "SSH_USER: ${{ vars.SSH_USER }}"
+        echo "SSH_PATH: ${{ vars.SSH_PATH }}"
+        echo "Connection string: ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}"
+        
+    - name: Test SSH connection
+      run: |
+        ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "echo 'SSH connection successful'"
+        
     - name: Copy files to server
       run: |
         rsync -avz --delete \
