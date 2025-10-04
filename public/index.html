@@ -1,0 +1,489 @@
+<!D    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <meta name=\"color-scheme\" content=\"light only\">
+    <title>Regnum Online Forum Archive</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name=\"description\" content=\"Champions of Regnum community forum archive. Browse threads, posts, and discussions from the Regnum Online gaming community.\">
+    <meta name=\"keywords\" content=\"Regnum Online, Champions of Regnum, forum archive, gaming community, discussions, threads, posts\">
+    <meta name=\"author\" content=\"Regnum Online Community\">
+    <meta name=\"robots\" content=\"index, follow\">
+    <link rel=\"canonical\" href=\"/\">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property=\"og:title\" content=\"Regnum Online Forum Archive\">
+    <meta property=\"og:description\" content=\"Champions of Regnum community forum archive. Browse threads, posts, and discussions from the Regnum Online gaming community.\">
+    <meta property=\"og:type\" content=\"website\">
+    <meta property=\"og:url\" content=\"/\">
+    <meta property=\"og:image\" content=\"/assets/cor-logo.png\">
+    <meta property=\"og:site_name\" content=\"Regnum Online Forum Archive\">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name=\"twitter:card\" content=\"summary_large_image\">
+    <meta name=\"twitter:title\" content=\"Regnum Online Forum Archive\">
+    <meta name=\"twitter:description\" content=\"Champions of Regnum community forum archive. Browse threads, posts, and discussions from the Regnum Online gaming community.\">
+    <meta name=\"twitter:image\" content=\"/assets/cor-logo.png\">PE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <title>Regnum Online Forum Archive</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="/css/forum.css" rel="stylesheet">
+    
+    <!-- Module preloading removed due to CORS issues -->
+</head>
+<body>
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-2">Loading Forum...</div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="forum-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-2 col-3 text-center">
+                    <img src="/assets/cor-logo.png" alt="Champions of Regnum" class="forum-logo">
+                </div>
+                <div class="col-md-10 col-9">
+                    <h1 class="display-4 mb-0">
+                        Regnum Online Forum Archive
+                    </h1>
+                    <p class="lead">Champions of Regnum Community Archive</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white rounded shadow-sm mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#" onclick="navigateToHome()">
+                    <i class="bi bi-house-door"></i> Forum Home
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="#" onclick="navigateToUsers()">
+                        <i class="bi bi-people"></i> Users
+                    </a>
+                    <a class="nav-link" href="#" onclick="navigateToStats()">
+                        <i class="bi bi-bar-chart"></i> Statistics
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Dynamic breadcrumb -->
+        <nav aria-label="breadcrumb" id="breadcrumb-nav" style="display: none;">
+            <ol class="breadcrumb" id="breadcrumb-content">
+                <!-- Breadcrumb items will be inserted here -->
+            </ol>
+        </nav>
+
+        <!-- Search form -->
+        <div class="search-form" id="search-form">
+            <div class="d-flex gap-3">
+                <div class="flex-grow-1">
+                    <input type="text" 
+                           class="form-control" 
+                           id="search-input" 
+                           placeholder="Search threads and posts..." 
+                           autocomplete="off">
+                    <div id="search-suggestions" class="search-suggestions"></div>
+                </div>
+                <div>
+                    <select class="form-select" id="language-select">
+                        <option value="">All Languages</option>
+                        <!-- Languages loaded dynamically -->
+                    </select>
+                </div>
+                <div>
+                    <select class="form-select" id="category-select" disabled>
+                        <option value="">All Categories</option>
+                        <!-- Categories loaded dynamically -->
+                    </select>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-forum-primary" onclick="performSearch()">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content area -->
+        <main id="main-content">
+            <!-- Content will be loaded dynamically -->
+        </main>
+
+        <!-- Pagination -->
+        <nav aria-label="Page navigation" id="pagination-nav" style="display: none;">
+            <ul class="pagination justify-content-center" id="pagination-content">
+                <!-- Pagination items will be inserted here -->
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Noscript fallback for search engines and accessibility -->
+    <noscript>
+        <div class="container mt-4">
+            <div class="alert alert-warning">
+                <h4><i class="bi bi-exclamation-triangle"></i> JavaScript Required</h4>
+                <p>This forum archive requires JavaScript to display content dynamically. For the best experience, please enable JavaScript in your browser.</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <h2><i class="bi bi-archive"></i> Regnum Online Forum Archive</h2>
+                    <p>This is an archive of the Champions of Regnum community forum containing thousands of discussions, posts, and threads from the gaming community.</p>
+                    
+                    <h3><i class="bi bi-list"></i> Available Content:</h3>
+                    <ul>
+                        <li><strong>Forum Threads:</strong> Browse community discussions across multiple languages</li>
+                        <li><strong>User Profiles:</strong> View community member information and contributions</li>
+                        <li><strong>Statistics:</strong> Forum analytics including post counts and user activity</li>
+                        <li><strong>Search:</strong> Find specific threads, posts, and users</li>
+                    </ul>
+                    
+                    <h3><i class="bi bi-translate"></i> Languages Available:</h3>
+                    <ul>
+                        <li>🇪🇸 Español</li>
+                        <li>🇺🇸 English</li>
+                        <li>🇵🇹 Português</li>
+                        <li>🇩🇪 Deutsch</li>
+                        <li>🇫🇷 Français</li>
+                        <li>🇮🇹 Italiano</li>
+                    </ul>
+                    
+                    <h3><i class="bi bi-link"></i> Direct Access Links:</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><a href="/?language=English">🇺🇸 English Discussions</a></li>
+                                <li><a href="/?language=Español">🇪🇸 Spanish Discussions</a></li>
+                                <li><a href="/?language=Português">🇵🇹 Portuguese Discussions</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><a href="/?language=Deutsch">🇩🇪 German Discussions</a></li>
+                                <li><a href="/?language=Français">🇫🇷 French Discussions</a></li>
+                                <li><a href="/?language=Italiano">🇮🇹 Italian Discussions</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="/users" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-people"></i> View Users
+                        </a>
+                        <a href="/stats" class="btn btn-outline-info me-2">
+                            <i class="bi bi-bar-chart"></i> View Statistics
+                        </a>
+                        <a href="/api/threads" class="btn btn-primary me-2">
+                            <i class="bi bi-download"></i> API Access
+                        </a>
+                        <a href="/api/stats" class="btn btn-info">
+                            <i class="bi bi-bar-chart"></i> Statistics API
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </noscript>
+
+    <!-- Footer -->
+    <footer class="mt-5 py-4 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-archive"></i>
+                        Regnum Online Forum Archive
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="text-muted mb-0">
+                        Archive of the Champions of Regnum community
+                        <span class="badge bg-secondary ms-2" id="app-version">v2.0</span>
+                    </p>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12 text-center">
+                    <p class="memorial-message mb-0">
+                        <em>In the memory of Regnum Online and everyone who played it</em>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Error Toast -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="error-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                <strong class="me-auto">Error</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="error-message">
+                <!-- Error message will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Toast -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1055;">
+        <div id="success-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                <strong class="me-auto">Success</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="success-message">
+                <!-- Success message will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Socket.IO removed - static archive only -->
+    
+    <!-- Application Scripts - Load in correct order -->
+    <script type="module" src="/js/utils.js"></script>
+    <script type="module" src="/js/api.js"></script>
+    <script type="module" src="/js/components.js"></script>
+    <!-- Router must load before app to define global functions -->
+    <script type="module" src="/js/router.js"></script>
+    <script type="module" src="/js/app.js"></script>
+    
+    <script>
+        // Simple navigation functions with debugging
+        window.navigateToThread = function(threadId) {
+            console.log('Navigate to thread:', threadId);
+            console.log('Router available:', !!window.router);
+            console.log('ForumApp available:', !!window.forumApp);
+            
+            if (window.forumApp && window.forumApp.loadThreadPage) {
+                window.forumApp.loadThreadPage(threadId);
+            } else if (window.router) {
+                window.router.navigate('/threads/' + threadId);
+            } else {
+                // Fallback - reload page with hash
+                window.location.href = '/#/threads/' + threadId;
+            }
+        };
+        
+        window.navigateToHome = function() {
+            console.log('Navigate to home');
+            if (window.forumApp && window.forumApp.loadHomePage) {
+                window.forumApp.loadHomePage({});
+            } else if (window.router) {
+                window.router.navigate('/');
+            } else {
+                window.location.href = '/';
+            }
+        };
+        
+        window.navigateToUsers = function() {
+            console.log('Navigate to users');
+            if (window.forumApp && window.forumApp.loadUsersPage) {
+                window.forumApp.loadUsersPage({});
+            } else if (window.router) {
+                window.router.navigate('/users');
+            } else {
+                window.location.href = '/#/users';
+            }
+        };
+        
+        window.navigateToStats = function() {
+            console.log('Navigate to stats');
+            if (window.forumApp && window.forumApp.loadStatsPage) {
+                window.forumApp.loadStatsPage({});
+            } else if (window.router) {
+                window.router.navigate('/stats');
+            } else {
+                window.location.href = '/#/stats';
+            }
+        };
+        
+        window.filterByLanguage = function(language) {
+            console.log('Filter by language:', language);
+            const params = language ? { language: language } : {};
+            if (window.forumApp && window.forumApp.loadHomePage) {
+                window.forumApp.loadHomePage(params);
+            } else if (window.router) {
+                window.router.navigate('/', params);
+            } else {
+                const url = language ? '/?language=' + encodeURIComponent(language) : '/';
+                window.location.href = url;
+            }
+        };
+        
+        window.filterByCategory = function(language, category) {
+            console.log('Filter by category:', language, category);
+            // Save scroll position before navigation
+            if (window.forumApp && window.forumApp.saveScrollPosition) {
+                window.forumApp.saveScrollPosition('homepage');
+            }
+            const params = { language: language, category: category };
+            if (window.forumApp && window.forumApp.loadHomePage) {
+                window.forumApp.loadHomePage(params);
+            } else if (window.router) {
+                window.router.navigate('/', params);
+            } else {
+                const url = '/?language=' + encodeURIComponent(language) + '&category=' + encodeURIComponent(category);
+                window.location.href = url;
+            }
+        };
+        
+        window.clearCategoryFilter = function() {
+            console.log('Clear category filter');
+            // Save scroll position before navigation
+            if (window.forumApp && window.forumApp.saveScrollPosition) {
+                window.forumApp.saveScrollPosition('homepage');
+            }
+            const language = getCurrentLanguage();
+            const params = language ? { language: language } : {};
+            if (window.forumApp && window.forumApp.loadHomePage) {
+                window.forumApp.loadHomePage(params);
+            } else if (window.router) {
+                window.router.navigate('/', params);
+            } else {
+                const url = language ? '/?language=' + encodeURIComponent(language) : '/';
+                window.location.href = url;
+            }
+        };
+        
+        window.getCurrentLanguage = function() {
+            const languageSelect = document.getElementById('language-select');
+            return languageSelect ? languageSelect.value : null;
+        };
+        
+        window.navigateToPage = function(page) {
+            console.log('Navigate to page:', page);
+            if (window.forumApp && window.forumApp.currentFilters) {
+                const params = { ...window.forumApp.currentFilters, page: page };
+                if (window.forumApp.loadHomePage) {
+                    window.forumApp.loadHomePage(params);
+                } else if (window.router) {
+                    window.router.navigate('/', params);
+                }
+            } else {
+                // Fallback - construct URL with current filters
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', page);
+                window.location.href = '?' + urlParams.toString();
+            }
+        };
+        
+        console.log('✅ Basic navigation functions loaded');
+        
+        // Setup click event listeners for dynamic content
+        function setupEventListeners() {
+            // Use event delegation for dynamically added content
+            document.addEventListener('click', function(e) {
+                // Handle thread navigation
+                if (e.target.closest('.thread-item')) {
+                    e.preventDefault();
+                    const threadItem = e.target.closest('.thread-item');
+                    
+                    console.log('🔍 Thread item clicked:', threadItem);
+                    console.log('🔍 Clicked element:', e.target);
+                    
+                    // Try multiple ways to find thread ID
+                    let threadId = null;
+                    
+                    // 1. Check if the clicked element has onclick
+                    const clickedOnclick = e.target.getAttribute('onclick');
+                    console.log('🔍 Clicked element onclick:', clickedOnclick);
+                    
+                    if (clickedOnclick) {
+                        const match = clickedOnclick.match(/navigateToThread\((\d+)\)/);
+                        if (match) {
+                            threadId = parseInt(match[1]);
+                            console.log('🔍 Thread ID from clicked element:', threadId);
+                        }
+                    }
+                    
+                    // 2. Check the thread item onclick
+                    if (!threadId) {
+                        const threadItemOnclick = threadItem.getAttribute('onclick');
+                        console.log('🔍 Thread item onclick:', threadItemOnclick);
+                        
+                        if (threadItemOnclick) {
+                            const match = threadItemOnclick.match(/navigateToThread\((\d+)\)/);
+                            if (match) {
+                                threadId = parseInt(match[1]);
+                                console.log('🔍 Thread ID from thread item:', threadId);
+                            }
+                        }
+                    }
+                    
+                    if (threadId && !isNaN(threadId)) {
+                        console.log('🚀 Navigating to thread:', threadId);
+                        window.navigateToThread(threadId);
+                    } else {
+                        console.error('❌ No valid thread ID found', { clickedOnclick, threadItemOnclick: threadItem.getAttribute('onclick') });
+                    }
+                }
+                
+                // Handle other navigation links
+                const onclick = e.target.getAttribute('onclick');
+                if (onclick && onclick.includes('filterByLanguage')) {
+                    e.preventDefault();
+                    const match = onclick.match(/filterByLanguage\('([^']*)'\)/);
+                    if (match) {
+                        window.filterByLanguage(match[1] === 'null' ? null : match[1]);
+                    }
+                }
+                
+                if (onclick && onclick.includes('filterByCategory')) {
+                    e.preventDefault();
+                    const match = onclick.match(/filterByCategory\('([^']*)',\s*'([^']*)'\)/);
+                    if (match) {
+                        window.filterByCategory(match[1], match[2]);
+                    }
+                }
+                
+                if (onclick && onclick.includes('navigateToHome')) {
+                    e.preventDefault();
+                    window.navigateToHome();
+                }
+                
+                if (onclick && onclick.includes('navigateToUsers')) {
+                    e.preventDefault();
+                    window.navigateToUsers();
+                }
+                
+                if (onclick && onclick.includes('navigateToStats')) {
+                    e.preventDefault();
+                    window.navigateToStats();
+                }
+            });
+        }
+        
+        // Setup event listeners after DOM is loaded
+        setupEventListeners();
+        
+        // Debug script loading
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, navigation functions available');
+        });
+    </script>
+</body>
+</html>

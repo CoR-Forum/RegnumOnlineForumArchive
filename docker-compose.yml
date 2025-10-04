@@ -1,0 +1,26 @@
+services:
+  forum:
+    build: .
+    container_name: regnum-forum-node
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./regnumforum.db:/var/lib/sqlite/regnumforum.db
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/var/lib/sqlite/regnumforum.db
+    restart: unless-stopped
+    networks:
+      - forum-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  forum-network:
+    driver: bridge
