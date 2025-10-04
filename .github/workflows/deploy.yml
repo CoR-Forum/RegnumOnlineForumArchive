@@ -1,0 +1,44 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download database
+      run: |
+        wget -O regnumforum.db "${{ vars.DB_URL }}"
+      
+    - name: Setup SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ vars.SSH_HOST }} >> ~/.ssh/known_hosts
+        
+    - name: Copy files to server
+      run: |
+        rsync -avz --delete \
+          --exclude '.git' \
+          --exclude '.github' \
+          --exclude 'node_modules' \
+          --exclude '.env.local' \
+          ./ ${{ vars.SSH_HOST }}:${{ vars.SSH_PATH }}/
+        
+    - name: Deploy application
+      run: |
+        ssh ${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && \
+          docker-compose down && \
+          docker-compose up -d --build"
+        
+    - name: Verify deployment
+      run: |
+        ssh ${{ vars.SSH_HOST }} "cd ${{ vars.SSH_PATH }} && docker-compose ps"
