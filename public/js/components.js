@@ -123,6 +123,7 @@ export function createPostItem(post) {
                                 <span class="fw-bold">${sanitizeHtml(post.username || 'Guest')}</span>
                             `}
                             <span class="badge bg-primary ms-2">Post #${post.postNo || post.id}</span>
+                            <small class="text-muted ms-2">ID: ${post.id}</small>
                             <button class="btn btn-outline-secondary btn-sm ms-2" onclick="copyPostLink('${postId}')" title="Copy link to this post">
                                 <i class="bi bi-link-45deg"></i>
                             </button>
@@ -139,17 +140,6 @@ export function createPostItem(post) {
             
             <div class="card-body">
                 ${post.message || '<em class="text-muted">No content available</em>'}
-            </div>
-            
-            <div class="card-footer bg-light">
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">ID: ${post.id}</small>
-                    <small class="text-muted">
-                        <a href="#${postId}" class="text-decoration-none">
-                            <i class="bi bi-hash"></i> Direct link
-                        </a>
-                    </small>
-                </div>
             </div>
         </div>
     `;
@@ -479,65 +469,179 @@ export function createCategoriesSidebarGrouped(allCategories, selectedLanguage =
     return sidebarContent;
 }
 
-// Pagination Component
-export function createPagination(pagination, context = 'default') {
+// Enhanced Pagination Component with Jump-to-Page functionality
+export function createPagination(pagination, context = 'default', options = {}) {
     if (!pagination || pagination.totalPages <= 1) {
         return '';
     }
 
     const { page, totalPages, hasNext, hasPrev } = pagination;
-    const startPage = Math.max(1, page - 2);
-    const endPage = Math.min(totalPages, page + 2);
+    
+    // Support different navigation functions based on context or custom options
+    let navFunction;
+    if (options.navFunction) {
+        navFunction = options.navFunction;
+    } else if (context === 'categories') {
+        navFunction = 'navigateToCategoryPage';
+    } else if (context.startsWith('user-')) {
+        const [_, tab, userId] = context.split('-');
+        navFunction = `function(page) { navigateToUserTab('${tab}', ${userId}, page); }`;
+    } else {
+        navFunction = 'navigateToPage';
+    }
+    
+    const uniqueId = `pagination-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Determine navigation function based on context
-    const navFunction = context === 'categories' ? 'navigateToCategoryPage' : 'navigateToPage';
+    // Calculate page range for display
+    const showEllipsis = totalPages > 10;
+    let startPage, endPage;
+    
+    if (showEllipsis) {
+        // Advanced pagination logic for many pages
+        if (page <= 4) {
+            startPage = 1;
+            endPage = Math.min(7, totalPages);
+        } else if (page >= totalPages - 3) {
+            startPage = Math.max(1, totalPages - 6);
+            endPage = totalPages;
+        } else {
+            startPage = page - 3;
+            endPage = page + 3;
+        }
+    } else {
+        startPage = 1;
+        endPage = totalPages;
+    }
 
-    let paginationHTML = '<ul class="pagination justify-content-center">';
+    let paginationHTML = `
+        <div class="pagination-container">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                <div class="pagination-info text-muted small">
+                    ${pagination.totalItems ? `
+                        Showing ${((page - 1) * pagination.limit) + 1} - ${Math.min(page * pagination.limit, pagination.totalItems)} 
+                        of ${formatNumber(pagination.totalItems)} ${pagination.itemType || 'items'}
+                    ` : `Page ${page} of ${totalPages}`}
+                </div>
+                
+                <nav aria-label="Page navigation">
+                    <ul class="pagination mb-0 flex-wrap">
+    `;
 
-    // Previous buttons
+    // First page and previous navigation  
+    const callNavFunction = (pageNum) => {
+        if (navFunction.startsWith('function')) {
+            return `(${navFunction})(${pageNum})`;
+        } else {
+            return `${navFunction}(${pageNum})`;
+        }
+    };
+
     if (hasPrev) {
         paginationHTML += `
             <li class="page-item">
-                <a class="page-link" href="#" onclick="event.preventDefault(); ${navFunction}(1); return false;">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${callNavFunction(1)}; return false;" title="First page">
                     <i class="bi bi-chevron-double-left"></i>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="#" onclick="event.preventDefault(); ${navFunction}(${page - 1}); return false;">
-                    <i class="bi bi-chevron-left"></i> Previous
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${callNavFunction(page - 1)}; return false;" title="Previous page">
+                    <i class="bi bi-chevron-left"></i>
                 </a>
             </li>
         `;
+    }
+
+    // Show ellipsis at the beginning if needed
+    if (showEllipsis && startPage > 1) {
+        if (startPage > 2) {
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); ${callNavFunction(1)}; return false;">1</a>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+            `;
+        }
     }
 
     // Page numbers
     for (let i = startPage; i <= endPage; i++) {
         paginationHTML += `
             <li class="page-item ${i === page ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="event.preventDefault(); ${navFunction}(${i}); return false;">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${callNavFunction(i)}; return false;">
                     ${i}
                 </a>
             </li>
         `;
     }
 
-    // Next buttons
+    // Show ellipsis at the end if needed
+    if (showEllipsis && endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            paginationHTML += `
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); ${callNavFunction(totalPages)}; return false;">${totalPages}</a>
+                </li>
+            `;
+        }
+    }
+
+    // Next page and last navigation
     if (hasNext) {
         paginationHTML += `
             <li class="page-item">
-                <a class="page-link" href="#" onclick="event.preventDefault(); ${navFunction}(${page + 1}); return false;">
-                    Next <i class="bi bi-chevron-right"></i>
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${callNavFunction(page + 1)}; return false;" title="Next page">
+                    <i class="bi bi-chevron-right"></i>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="#" onclick="event.preventDefault(); ${navFunction}(${totalPages}); return false;">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${callNavFunction(totalPages)}; return false;" title="Last page">
                     <i class="bi bi-chevron-double-right"></i>
                 </a>
             </li>
         `;
     }
 
-    paginationHTML += '</ul>';
+    paginationHTML += `
+                    </ul>
+                </nav>
+
+                <!-- Jump to page input -->
+                <div class="pagination-jump d-flex align-items-center gap-2">
+                    <small class="text-muted">Go to page:</small>
+                    <div class="input-group input-group-sm" style="width: 120px;">
+                        <input type="number" 
+                               class="form-control text-center" 
+                               id="${uniqueId}-jump"
+                               min="1" 
+                               max="${totalPages}" 
+                               placeholder="${page}"
+                               onkeypress="if(event.key==='Enter') { 
+                                 const val = parseInt(this.value); 
+                                 if(val >= 1 && val <= ${totalPages}) { 
+                                   ${navFunction.startsWith('function') ? `(${navFunction})(val)` : `${navFunction}(val)`}; 
+                                   this.value = ''; 
+                                 } 
+                               }">
+                        <button class="btn btn-outline-secondary" 
+                                type="button"
+                                onclick="const input = document.getElementById('${uniqueId}-jump'); 
+                                         const val = parseInt(input.value); 
+                                         if(val >= 1 && val <= ${totalPages}) { 
+                                           ${navFunction.startsWith('function') ? `(${navFunction})(val)` : `${navFunction}(val)`}; 
+                                           input.value = ''; 
+                                         }">
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 
     return paginationHTML;
 }

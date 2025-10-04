@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
         limit: pagination.limit,
         totalPages: Math.ceil(totalUsers / pagination.limit),
         totalUsers,
-        hasMore: pagination.offset + users.length < totalUsers,
+        hasNext: pagination.offset + users.length < totalUsers,
         hasPrev: pagination.page > 1,
         startItem: pagination.offset + 1,
         endItem: Math.min(pagination.offset + pagination.limit, totalUsers)

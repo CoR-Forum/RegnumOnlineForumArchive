@@ -679,15 +679,12 @@ class ForumApplication {
             
             // Add results info
             content += `
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="mb-4">
                     <h5 class="mb-0">
                         <i class="bi bi-people-fill"></i> 
                         ${search ? 'Search Results' : 'All Users'}
-                        <span class="badge bg-primary ms-2">${pagination.totalUsers}</span>
+                        <span class="badge bg-primary ms-2">${formatNumber(pagination.totalUsers || 0)}</span>
                     </h5>
-                    <div class="text-muted">
-                        Showing ${pagination.startItem}-${pagination.endItem} of ${pagination.totalUsers}
-                    </div>
                 </div>
             `;
             
@@ -900,36 +897,9 @@ class ForumApplication {
                                         `).join('')}
                                     </div>
                                     
-                                    ${postsPagination && postsPagination.totalPages > 1 ? `
-                                        <nav class="mt-4" aria-label="Posts pagination">
-                                            <ul class="pagination justify-content-center">
-                                                ${postsPagination.hasPrev ? `
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${postsPagination.page - 1}); return false;">
-                                                            <i class="bi bi-chevron-left"></i> Previous
-                                                        </a>
-                                                    </li>
-                                                ` : ''}
-                                                
-                                                ${Array.from({length: Math.min(5, postsPagination.totalPages)}, (_, i) => {
-                                                    const pageNum = Math.max(1, Math.min(postsPagination.totalPages, postsPagination.page - 2 + i));
-                                                    return `
-                                                        <li class="page-item ${pageNum === postsPagination.page ? 'active' : ''}">
-                                                            <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${pageNum}); return false;">${pageNum}</a>
-                                                        </li>
-                                                    `;
-                                                }).join('')}
-                                                
-                                                ${postsPagination.hasMore ? `
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('posts', ${userId}, ${postsPagination.page + 1}); return false;">
-                                                            Next <i class="bi bi-chevron-right"></i>
-                                                        </a>
-                                                    </li>
-                                                ` : ''}
-                                            </ul>
-                                        </nav>
-                                    ` : ''}
+                                    ${createPagination(postsPagination, `user-posts-${userId}`, {
+                                        itemType: 'posts'
+                                    })}
                                 ` : '<div class="text-center py-5 text-muted"><i class="bi bi-chat-dots display-1 opacity-25"></i><p class="mt-3">No posts found for this user.</p></div>'}
                             </div>
                             
@@ -962,36 +932,9 @@ class ForumApplication {
                                         `).join('')}
                                     </div>
                                     
-                                    ${threadsPagination && threadsPagination.totalPages > 1 ? `
-                                        <nav class="mt-4" aria-label="Threads pagination">
-                                            <ul class="pagination justify-content-center">
-                                                ${threadsPagination.hasPrev ? `
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('threads', ${userId}, ${threadsPagination.page - 1}); return false;">
-                                                            <i class="bi bi-chevron-left"></i> Previous
-                                                        </a>
-                                                    </li>
-                                                ` : ''}
-                                                
-                                                ${Array.from({length: Math.min(5, threadsPagination.totalPages)}, (_, i) => {
-                                                    const pageNum = Math.max(1, Math.min(threadsPagination.totalPages, threadsPagination.page - 2 + i));
-                                                    return `
-                                                        <li class="page-item ${pageNum === threadsPagination.page ? 'active' : ''}">
-                                                            <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('threads', ${userId}, ${pageNum}); return false;">${pageNum}</a>
-                                                        </li>
-                                                    `;
-                                                }).join('')}
-                                                
-                                                ${threadsPagination.hasMore ? `
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="#" onclick="event.preventDefault(); navigateToUserTab('threads', ${userId}, ${threadsPagination.page + 1}); return false;">
-                                                            Next <i class="bi bi-chevron-right"></i>
-                                                        </a>
-                                                    </li>
-                                                ` : ''}
-                                            </ul>
-                                        </nav>
-                                    ` : ''}
+                                    ${createPagination(threadsPagination, `user-threads-${userId}`, {
+                                        itemType: 'threads'
+                                    })}
                                 ` : '<div class="text-center py-5 text-muted"><i class="bi bi-chat-text display-1 opacity-25"></i><p class="mt-3">No threads found for this user.</p></div>'}
                             </div>
                         </div>
@@ -1200,7 +1143,15 @@ class ForumApplication {
         if (!paginationNav || !paginationContent) return;
         
         if (pagination && pagination.totalPages > 1) {
-            paginationContent.innerHTML = createPagination(pagination);
+            // Add item information to pagination for better display
+            const enhancedPagination = {
+                ...pagination,
+                totalItems: pagination.totalUsers || pagination.totalThreads || pagination.totalPosts,
+                itemType: pagination.totalUsers ? 'users' : 
+                         pagination.totalThreads ? 'threads' : 
+                         pagination.totalPosts ? 'posts' : 'items'
+            };
+            paginationContent.innerHTML = createPagination(enhancedPagination);
             paginationNav.style.display = 'block';
         } else {
             paginationNav.style.display = 'none';

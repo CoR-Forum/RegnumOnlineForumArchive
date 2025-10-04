@@ -16,11 +16,12 @@ router.get('/', async (req, res) => {
     const { language, category, search, page = 1, limit = 20 } = req.query;
     const pagination = validatePagination(page, limit);
     
-    let threads;
+    let threads, totalThreads;
     
     if (search) {
       // Search threads
       threads = await db.searchThreads(search, language);
+      totalThreads = threads.length; // For search, we get all results
     } else {
       // Get threads with optional filtering
       threads = await db.getThreads(
@@ -29,6 +30,7 @@ router.get('/', async (req, res) => {
         pagination.limit, 
         pagination.offset
       );
+      totalThreads = await db.getThreadCount(language, category);
     }
     
     // Format threads for API response
@@ -39,7 +41,10 @@ router.get('/', async (req, res) => {
       pagination: {
         page: pagination.page,
         limit: pagination.limit,
-        hasMore: formattedThreads.length === pagination.limit
+        totalPages: Math.ceil(totalThreads / pagination.limit),
+        totalThreads,
+        hasNext: pagination.offset + formattedThreads.length < totalThreads,
+        hasPrev: pagination.page > 1
       },
       filters: {
         language,

@@ -210,6 +210,25 @@ class Database {
     return result ? result.count : 0;
   }
 
+  // Get thread count for pagination
+  async getThreadCount(language = null, category = null) {
+    let sql = 'SELECT COUNT(*) as count FROM threads t WHERE 1=1';
+    const params = [];
+    
+    if (language) {
+      sql += ' AND t.path LIKE ?';
+      params.push(`%/${language}/%`);
+    }
+    
+    if (category) {
+      sql += ' AND t.path LIKE ?';
+      params.push(`%/${category}`);
+    }
+    
+    const result = await this.get(sql, params);
+    return result ? result.count : 0;
+  }
+
   // Search threads
   async searchThreads(query, language = null) {
     let sql = `
