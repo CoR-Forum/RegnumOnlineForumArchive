@@ -55,13 +55,8 @@ class ForumApplication {
         // Enable auto-scroll position saving
         this.scrollCleanup = enableAutoScrollSave('homepage', 200);
         
-        // Track loading start time
-        this.loadingStartTime = Date.now();
-        
-                // Initialize the forum app
-        this.init();
-        
-        // Load stats for footer
+        // Initialize the forum app
+        this.init();        // Load stats for footer
         this.loadFooterStats();
     }
     
@@ -82,15 +77,11 @@ class ForumApplication {
             // Setup event handlers
             this.setupEventHandlers();
             
-            // Hide loading overlay
-            this.hideLoadingOverlay();
-            
             console.log('✅ Forum Archive initialized successfully');
             
         } catch (error) {
             console.error('❌ Failed to initialize application:', error);
             this.showError('main-content', 'Failed to load the forum. Please refresh the page.');
-            this.hideLoadingOverlay();
         }
     }
     
@@ -130,23 +121,6 @@ class ForumApplication {
         
         // WebSocket event handlers
         // WebSocket event listeners removed - static archive only
-    }
-    
-    // Hide loading overlay (ensures it shows for at least 1.5 seconds)
-    hideLoadingOverlay() {
-        const overlay = document.getElementById('loading-overlay');
-        if (overlay) {
-            const elapsedTime = Date.now() - this.loadingStartTime;
-            const minDisplayTime = 500; // 1.5 seconds
-            const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
-            
-            setTimeout(() => {
-                overlay.classList.add('fade-out');
-                setTimeout(() => {
-                    overlay.style.display = 'none';
-                }, 500);
-            }, remainingTime);
-        }
     }
     
     // Show toast notification
