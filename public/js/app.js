@@ -398,13 +398,8 @@ class ForumApplication {
                 // For category changes within same language, restore scroll position
                 restoreScrollPosition('homepage', 150);
             } else if (isPageNavigation) {
-                // For pagination, scroll to top of content
-                setTimeout(() => {
-                    const mainContent = document.getElementById('main-content');
-                    if (mainContent) {
-                        mainContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }, 100);
+                // For pagination, don't scroll - keep current position
+                // Removed scroll to top behavior for pagination clicks
             } else {
                 // For new language/category selection, clear saved position and scroll to top
                 clearScrollPosition('homepage');
@@ -585,7 +580,8 @@ class ForumApplication {
             `;
             
             document.getElementById('main-content').innerHTML = content;
-            this.updatePagination(pagination);
+            // Don't update global pagination for thread pages - inline pagination is used instead
+            // this.updatePagination(pagination);
             
             // Notify WebSocket that we're viewing this thread
             // WebSocket thread viewing removed - static archive
@@ -1137,10 +1133,13 @@ class ForumApplication {
     
     // Update pagination
     updatePagination(pagination) {
+        // Update bottom pagination
         const paginationNav = document.getElementById('pagination-nav');
         const paginationContent = document.getElementById('pagination-content');
         
-        if (!paginationNav || !paginationContent) return;
+        // Update top pagination
+        const paginationNavTop = document.getElementById('pagination-nav-top');
+        const paginationContentTop = document.getElementById('pagination-content-top');
         
         if (pagination && pagination.totalPages > 1) {
             // Add item information to pagination for better display
@@ -1151,10 +1150,23 @@ class ForumApplication {
                          pagination.totalThreads ? 'threads' : 
                          pagination.totalPosts ? 'posts' : 'items'
             };
-            paginationContent.innerHTML = createPagination(enhancedPagination);
-            paginationNav.style.display = 'block';
+            const paginationHtml = createPagination(enhancedPagination);
+            
+            // Update bottom pagination
+            if (paginationContent) {
+                paginationContent.innerHTML = paginationHtml;
+                if (paginationNav) paginationNav.style.display = 'block';
+            }
+            
+            // Update top pagination
+            if (paginationContentTop) {
+                paginationContentTop.innerHTML = paginationHtml;
+                if (paginationNavTop) paginationNavTop.style.display = 'block';
+            }
         } else {
-            paginationNav.style.display = 'none';
+            // Hide both pagination elements
+            if (paginationNav) paginationNav.style.display = 'none';
+            if (paginationNavTop) paginationNavTop.style.display = 'none';
         }
     }
     
