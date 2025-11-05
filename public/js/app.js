@@ -364,6 +364,9 @@ class ForumApplication {
             // Update main content
             document.getElementById('main-content').innerHTML = content;
             
+            // Initialize Google AdSense ads after content is loaded
+            this.initializeAds();
+            
             // Update pagination
             this.updatePagination(pagination);
             
@@ -1146,17 +1149,26 @@ class ForumApplication {
     
     // WebSocket methods removed - static archive only
     
-    // Utility method to get language flag
-    getLanguageFlag(language) {
-        const flags = {
-            'Español': '🇪🇸',
-            'English': '🇺🇸',
-            'Português': '🇵🇹',
-            'Deutsch': '🇩🇪',
-            'Français': '🇫🇷',
-            'Italiano': '🇮🇹'
-        };
-        return flags[language] || '🌐';
+    // Initialize Google AdSense ads
+    initializeAds() {
+        // Wait for AdSense to be loaded
+        if (typeof window.adsbygoogle !== 'undefined') {
+            try {
+                // Find all ad elements and initialize them
+                const adElements = document.querySelectorAll('.adsbygoogle');
+                adElements.forEach(ad => {
+                    if (!ad.hasAttribute('data-adsbygoogle-status')) {
+                        (window.adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                });
+                console.log('✅ Google AdSense ads initialized');
+            } catch (error) {
+                console.error('❌ Failed to initialize AdSense ads:', error);
+            }
+        } else {
+            // Retry after a short delay if AdSense isn't loaded yet
+            setTimeout(() => this.initializeAds(), 1000);
+        }
     }
     
     // Expose scroll position management methods
