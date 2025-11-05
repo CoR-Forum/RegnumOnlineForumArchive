@@ -74,9 +74,9 @@ export function showLoading(containerId) {
     container.innerHTML = `
         <div class="text-center p-5">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">Reading SQLite database...</span>
             </div>
-            <div class="mt-2">Loading...</div>
+            <div class="mt-2">Reading SQLite database...</div>
         </div>
     `;
 }
