@@ -344,6 +344,170 @@
     <script type="module" src="/js/router.js"></script>
     <script type="module" src="/js/app.js"></script>
     
+    <!-- Ad Blocker Detection Script -->
+    <script>
+        // Ad blocker detection variables
+        window.adBlockerDetected = false;
+        window.adBlockerWarningShown = false;
+        
+        // Function to detect ad blockers
+        function detectAdBlocker() {
+            // Method 1: Check for AdSense variables
+            if (typeof window.adsbygoogle === 'undefined') {
+                return true;
+            }
+            
+            // Method 2: Create a fake ad element and check if it's blocked
+            const testAd = document.createElement('div');
+            testAd.innerHTML = '&nbsp;';
+            testAd.className = 'adsbox adsbygoogle ad-banner advertisement ad-placement';
+            testAd.style.position = 'absolute';
+            testAd.style.left = '-10000px';
+            testAd.style.top = '-1000px';
+            testAd.style.width = '1px';
+            testAd.style.height = '1px';
+            
+            document.body.appendChild(testAd);
+            
+            // Check if the element is hidden (common ad blocker behavior)
+            const isBlocked = (testAd.offsetHeight === 0 || testAd.offsetWidth === 0 || 
+                             testAd.style.display === 'none' || 
+                             testAd.style.visibility === 'hidden' ||
+                             window.getComputedStyle(testAd).display === 'none');
+            
+            document.body.removeChild(testAd);
+            
+            // Method 3: Check for common ad blocker extensions
+            const adBlockerIndicators = [
+                'uBlock',
+                'AdBlock',
+                'Adblock Plus',
+                'AdGuard',
+                'Ghostery',
+                'Privacy Badger'
+            ];
+            
+            const navigatorPlugins = navigator.plugins || [];
+            for (let plugin of navigatorPlugins) {
+                for (let indicator of adBlockerIndicators) {
+                    if (plugin.name && plugin.name.includes(indicator)) {
+                        return true;
+                    }
+                }
+            }
+            
+            return isBlocked;
+        }
+        
+        // Function to show ad blocker warning in main content
+        function showAdBlockerWarning() {
+            if (window.adBlockerWarningShown) return;
+            
+            window.adBlockerDetected = true;
+            window.adBlockerWarningShown = true;
+            
+            const mainContent = document.getElementById('main-content');
+            if (!mainContent) return;
+            
+            // Clear any existing content
+            mainContent.innerHTML = '';
+            
+            // Inject the ad blocker warning
+            mainContent.innerHTML = `
+                <div class="row justify-content-center">
+                    <div class="col-lg-8 col-md-10">
+                        <div class="alert alert-warning border border-warning shadow-sm" role="alert">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0 me-3">
+                                    <i class="bi bi-shield-exclamation text-warning" style="font-size: 2rem;"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h4 class="alert-heading mb-3">Ad Blocker Detected</h4>
+                                    <p class="mb-3">
+                                        This forum archive relies on advertising revenue to maintain and host the content.
+                                        To access the forum archive, please disable your ad blocker for this site.
+                                    </p>
+                                    <div class="bg-light p-3 rounded mb-3">
+                                        <small class="text-muted">
+                                            <strong>Why ads are required:</strong> The Regnum Online community forum archive contains thousands
+                                            of posts and discussions that need to be hosted and maintained. Your support through viewing ads
+                                            helps keep this historical content accessible to the gaming community.
+                                        </small>
+                                    </div>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button type="button" class="btn btn-primary" onclick="checkAdBlocker()">
+                                            <i class="bi bi-arrow-clockwise"></i> I've Disabled My Ad Blocker - Check Again
+                                        </button>
+                                    </div>
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <i class="bi bi-info-circle"></i> After disabling your ad blocker, click the button above to verify and access the content.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Function to check ad blocker status
+        window.checkAdBlocker = function() {
+            if (!detectAdBlocker()) {
+                window.adBlockerDetected = false;
+                window.adBlockerWarningShown = false;
+                
+                // Clear the warning and reload content
+                const mainContent = document.getElementById('main-content');
+                if (mainContent) {
+                    mainContent.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                }
+                
+                // Show success message
+                showToast('Thank you for supporting the forum archive!', 'success');
+                
+                // Reload the page content
+                if (window.forumApp && window.forumApp.loadHomePage) {
+                    window.forumApp.loadHomePage({});
+                } else if (window.router) {
+                    window.router.navigate('/');
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                showToast('Ad blocker still detected. Please disable it completely to access the content.', 'error');
+            }
+        };
+        
+        // Function to show toast messages
+        function showToast(message, type = 'info') {
+            const toastId = type === 'success' ? 'success-toast' : 'error-toast';
+            const messageId = type === 'success' ? 'success-message' : 'error-message';
+            
+            document.getElementById(messageId).textContent = message;
+            const toast = new bootstrap.Toast(document.getElementById(toastId));
+            toast.show();
+        }
+        
+        // Check for ad blocker after page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Delay check to allow AdSense to load
+            setTimeout(function() {
+                if (detectAdBlocker()) {
+                    showAdBlockerWarning();
+                }
+            }, 3000); // 3 second delay
+        });
+        
+        // Periodic check (every 30 seconds)
+        setInterval(function() {
+            if (!window.adBlockerWarningShown && detectAdBlocker()) {
+                showAdBlockerWarning();
+            }
+        }, 30000);
+    </script>
+    
     <script>
         // Simple navigation functions with debugging
         window.navigateToThread = function(threadId) {
