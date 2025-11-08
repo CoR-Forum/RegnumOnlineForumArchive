@@ -313,21 +313,6 @@ export function createCategoriesSidebar(categories, selectedCategory = null, pag
 
     let sidebarContent = `
         <div class="col-lg-3">
-            <!-- Google AdSense Sidebar Ad -->
-            <div class="card mb-4">
-                <div class="card-body p-2 text-center">
-                    <ins class="adsbygoogle"
-                         style="display:block"
-                         data-ad-client="ca-pub-2117992780566693"
-                         data-ad-slot="YOUR_AD_SLOT_ID"
-                         data-ad-format="auto"
-                         data-full-width-responsive="true"></ins>
-                    <script>
-                         (adsbygoogle = window.adsbygoogle || []).push({});
-                    </script>
-                </div>
-            </div>
-            
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
@@ -402,21 +387,6 @@ export function createCategoriesSidebar(categories, selectedCategory = null, pag
     
     sidebarContent += `
             </div>
-            
-            <!-- Second Google AdSense Sidebar Ad -->
-            <div class="card mt-4">
-                <div class="card-body p-2 text-center">
-                    <ins class="adsbygoogle"
-                         style="display:block"
-                         data-ad-client="ca-pub-2117992780566693"
-                         data-ad-slot="YOUR_AD_SLOT_ID_2"
-                         data-ad-format="auto"
-                         data-full-width-responsive="true"></ins>
-                    <script>
-                         (adsbygoogle = window.adsbygoogle || []).push({});
-                    </script>
-                </div>
-            </div>
         </div>
     `;
 
@@ -446,21 +416,6 @@ export function createCategoriesSidebarGrouped(allCategories, selectedLanguage =
     
     let sidebarContent = `
         <div class="col-lg-3">
-            <!-- Google AdSense Sidebar Ad -->
-            <div class="card mb-4">
-                <div class="card-body p-2 text-center">
-                    <ins class="adsbygoogle"
-                         style="display:block"
-                         data-ad-client="ca-pub-2117992780566693"
-                         data-ad-slot="YOUR_AD_SLOT_ID"
-                         data-ad-format="auto"
-                         data-full-width-responsive="true"></ins>
-                    <script>
-                         (adsbygoogle = window.adsbygoogle || []).push({});
-                    </script>
-                </div>
-            </div>
-            
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
@@ -506,21 +461,6 @@ export function createCategoriesSidebarGrouped(allCategories, selectedLanguage =
                             </div>
                         </div>
                     `).join('')}
-                </div>
-            </div>
-            
-            <!-- Second Google AdSense Sidebar Ad -->
-            <div class="card mt-4">
-                <div class="card-body p-2 text-center">
-                    <ins class="adsbygoogle"
-                         style="display:block"
-                         data-ad-client="ca-pub-2117992780566693"
-                         data-ad-slot="YOUR_AD_SLOT_ID_2"
-                         data-ad-format="auto"
-                         data-full-width-responsive="true"></ins>
-                    <script>
-                         (adsbygoogle = window.adsbygoogle || []).push({});
-                    </script>
                 </div>
             </div>
         </div>
