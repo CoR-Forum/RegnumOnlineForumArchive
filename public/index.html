@@ -497,7 +497,7 @@
                 if (detectAdBlocker()) {
                     showAdBlockerWarning();
                 }
-            }, 3000); // 3 second delay
+            }, 5000); // 3 second delay
         });
         
         // Periodic check (every 30 seconds)
@@ -505,7 +505,7 @@
             if (!window.adBlockerWarningShown && detectAdBlocker()) {
                 showAdBlockerWarning();
             }
-        }, 30000);
+        }, 10000);
     </script>
     
     <script>
