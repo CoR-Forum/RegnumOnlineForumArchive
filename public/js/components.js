@@ -486,6 +486,13 @@ export function createPagination(pagination, context = 'default', options = {}) 
     } else if (context.startsWith('user-')) {
         const [_, tab, userId] = context.split('-');
         navFunction = `function(page) { navigateToUserTab('${tab}', ${userId}, page); }`;
+    } else if (context.startsWith('thread-')) {
+        const threadId = context.split('-')[1];
+        navFunction = `navigateToThreadPage_${threadId}`;
+        // Create a global function for this specific thread
+        window[`navigateToThreadPage_${threadId}`] = function(page) {
+            window.navigateToThread(threadId, page);
+        };
     } else {
         navFunction = 'navigateToPage';
     }
@@ -530,6 +537,7 @@ export function createPagination(pagination, context = 'default', options = {}) 
     // First page and previous navigation  
     const callNavFunction = (pageNum) => {
         if (navFunction.startsWith('function')) {
+            // For inline functions like user pagination, execute the function with the page number
             return `(${navFunction})(${pageNum})`;
         } else {
             return `${navFunction}(${pageNum})`;

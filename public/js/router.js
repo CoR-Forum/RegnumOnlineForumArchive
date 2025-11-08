@@ -122,19 +122,26 @@ class Router {
     
     // Match route with parameters
     matchRoute(routePath, actualPath) {
+        // Remove query string for matching
+        const pathOnly = actualPath.split('?')[0];
+        
         // Convert route pattern to regex
         const routeRegex = routePath.replace(/:\w+/g, '([^/]+)');
         const regex = new RegExp(`^${routeRegex}$`);
         
-        return regex.test(actualPath);
+        return regex.test(pathOnly);
     }
     
     // Extract parameters from path
     extractParams(routePath, actualPath) {
+        // Separate path and query string
+        const [pathOnly, queryString] = actualPath.split('?');
+        
         const routeParts = routePath.split('/');
-        const actualParts = actualPath.split('/');
+        const actualParts = pathOnly.split('/');
         const params = {};
         
+        // Extract path parameters (like :id)
         for (let i = 0; i < routeParts.length; i++) {
             const routePart = routeParts[i];
             const actualPart = actualParts[i];
@@ -142,6 +149,14 @@ class Router {
             if (routePart.startsWith(':')) {
                 const paramName = routePart.substring(1);
                 params[paramName] = actualPart;
+            }
+        }
+        
+        // Extract query parameters (like ?page=2)
+        if (queryString) {
+            const urlParams = new URLSearchParams(queryString);
+            for (const [key, value] of urlParams.entries()) {
+                params[key] = value;
             }
         }
         
@@ -251,8 +266,10 @@ export function setupNavigationFunctions() {
         router.navigate(`/users/${userId}`, params);
     };
 
-    window.navigateToThread = (threadId, params = {}) => {
-        router.navigate(`/threads/${threadId}`, params);
+    window.navigateToThread = (threadId, page = 1) => {
+        const path = `/threads/${threadId}`;
+        const params = page > 1 ? { page: page } : {};
+        router.navigate(path, params);
     };
 
 

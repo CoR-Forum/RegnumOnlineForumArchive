@@ -530,7 +530,7 @@ class ForumApplication {
             
             // Add pagination if multiple pages
             if (pagination.totalPages > 1) {
-                content += `<div class="mb-4">${createPagination(pagination)}</div>`;
+                content += `<div class="mb-4">${createPagination(pagination, `thread-${threadId}`)}</div>`;
             }
             
             // Add posts
@@ -538,7 +538,7 @@ class ForumApplication {
             
             // Add bottom pagination
             if (pagination.totalPages > 1) {
-                content += `<div class="mt-4">${createPagination(pagination)}</div>`;
+                content += `<div class="mt-4">${createPagination(pagination, `thread-${threadId}`)}</div>`;
             }
             
             // Add back navigation
@@ -555,7 +555,8 @@ class ForumApplication {
             
             document.getElementById('main-content').innerHTML = content;
             // Don't update global pagination for thread pages - inline pagination is used instead
-            // this.updatePagination(pagination);
+            // Hide the global pagination elements since thread pages use inline pagination
+            this.hideGlobalPagination();
             
             // Notify WebSocket that we're viewing this thread
             // WebSocket thread viewing removed - static archive
@@ -1142,6 +1143,15 @@ class ForumApplication {
             if (paginationNav) paginationNav.style.display = 'none';
             if (paginationNavTop) paginationNavTop.style.display = 'none';
         }
+    }
+
+    // Hide global pagination elements (used for pages that have inline pagination)
+    hideGlobalPagination() {
+        const paginationNav = document.getElementById('pagination-nav');
+        const paginationNavTop = document.getElementById('pagination-nav-top');
+        
+        if (paginationNav) paginationNav.style.display = 'none';
+        if (paginationNavTop) paginationNavTop.style.display = 'none';
     }
     
     // WebSocket methods removed - static archive only

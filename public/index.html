@@ -510,18 +510,29 @@
     
     <script>
         // Simple navigation functions with debugging
-        window.navigateToThread = function(threadId) {
-            console.log('Navigate to thread:', threadId);
-            console.log('Router available:', !!window.router);
-            console.log('ForumApp available:', !!window.forumApp);
+        window.navigateToThread = function(threadId, page = 1) {
+            console.log('🚀 NAVIGATE navigateToThread called:', threadId, 'page:', page);
+            console.log('🚀 NAVIGATE Router available:', !!window.router);
+            console.log('🚀 NAVIGATE ForumApp available:', !!window.forumApp);
             
             if (window.forumApp && window.forumApp.loadThreadPage) {
-                window.forumApp.loadThreadPage(threadId);
+                // Use router to properly handle URL and parameters
+                if (window.router) {
+                    const url = page > 1 ? `/threads/${threadId}?page=${page}` : `/threads/${threadId}`;
+                    console.log('🚀 NAVIGATE generated URL:', url);
+                    console.log('🚀 NAVIGATE calling router.navigate with:', url);
+                    window.router.navigate(url);
+                } else {
+                    console.log('🚀 NAVIGATE no router, calling loadThreadPage directly');
+                    window.forumApp.loadThreadPage(threadId, { page: page });
+                }
             } else if (window.router) {
-                window.router.navigate('/threads/' + threadId);
+                const url = page > 1 ? `/threads/${threadId}?page=${page}` : `/threads/${threadId}`;
+                window.router.navigate(url);
             } else {
                 // Fallback - reload page with hash
-                window.location.href = '/#/threads/' + threadId;
+                const url = page > 1 ? `/#/threads/${threadId}?page=${page}` : `/#/threads/${threadId}`;
+                window.location.href = url;
             }
         };
         
@@ -684,6 +695,11 @@
         function setupEventListeners() {
             // Use event delegation for dynamically added content
             document.addEventListener('click', function(e) {
+                // Skip pagination clicks - let them handle themselves
+                if (e.target.closest('.pagination')) {
+                    return;
+                }
+                
                 // Handle thread navigation
                 if (e.target.closest('.thread-item')) {
                     e.preventDefault();
