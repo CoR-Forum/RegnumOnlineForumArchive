@@ -352,51 +352,101 @@
         
         // Function to detect ad blockers
         function detectAdBlocker() {
-            // Method 1: Check for AdSense variables
-            if (typeof window.adsbygoogle === 'undefined') {
+            console.log('🔍 Running ad blocker detection...');
+            
+            // Method 1: Check for AdSense variables (with timeout consideration)
+            const adSenseLoaded = typeof window.adsbygoogle !== 'undefined';
+            console.log('🔍 AdSense loaded:', adSenseLoaded);
+            
+            if (!adSenseLoaded) {
+                // Give AdSense more time to load if we're early in the page lifecycle
+                const timeSinceLoad = Date.now() - (window.performance?.timing?.navigationStart || Date.now());
+                if (timeSinceLoad < 10000) { // Less than 10 seconds since page load
+                    console.log('🔍 AdSense not loaded yet, but page is still loading');
+                    return false; // Don't block yet, give it more time
+                }
+                console.log('🔍 AdSense not loaded after sufficient time');
                 return true;
             }
             
             // Method 2: Create a fake ad element and check if it's blocked
-            const testAd = document.createElement('div');
-            testAd.innerHTML = '&nbsp;';
-            testAd.className = 'adsbox adsbygoogle ad-banner advertisement ad-placement';
-            testAd.style.position = 'absolute';
-            testAd.style.left = '-10000px';
-            testAd.style.top = '-1000px';
-            testAd.style.width = '1px';
-            testAd.style.height = '1px';
+            try {
+                const testAd = document.createElement('div');
+                testAd.innerHTML = '&nbsp;';
+                testAd.className = 'adsbox adsbygoogle ad-banner advertisement ad-placement';
+                testAd.style.position = 'absolute';
+                testAd.style.left = '-10000px';
+                testAd.style.top = '-1000px';
+                testAd.style.width = '1px';
+                testAd.style.height = '1px';
+                
+                document.body.appendChild(testAd);
+                
+                // Check if the element is hidden (common ad blocker behavior)
+                const computedStyle = window.getComputedStyle(testAd);
+                const isBlocked = (testAd.offsetHeight === 0 || testAd.offsetWidth === 0 || 
+                                 testAd.style.display === 'none' || 
+                                 testAd.style.visibility === 'hidden' ||
+                                 computedStyle.display === 'none' ||
+                                 computedStyle.visibility === 'hidden');
+                
+                document.body.removeChild(testAd);
+                console.log('🔍 Test ad element blocked:', isBlocked);
+                
+                if (isBlocked) {
+                    return true;
+                }
+            } catch (e) {
+                console.log('🔍 Error testing ad element:', e);
+                // If we can't test the element, assume ad blocker
+                return true;
+            }
             
-            document.body.appendChild(testAd);
-            
-            // Check if the element is hidden (common ad blocker behavior)
-            const isBlocked = (testAd.offsetHeight === 0 || testAd.offsetWidth === 0 || 
-                             testAd.style.display === 'none' || 
-                             testAd.style.visibility === 'hidden' ||
-                             window.getComputedStyle(testAd).display === 'none');
-            
-            document.body.removeChild(testAd);
-            
-            // Method 3: Check for common ad blocker extensions
-            const adBlockerIndicators = [
-                'uBlock',
-                'AdBlock',
-                'Adblock Plus',
-                'AdGuard',
-                'Ghostery',
-                'Privacy Badger'
+            // Method 3: Check for common ad blocker indicators in the DOM
+            const adBlockerSelectors = [
+                '[class*="ad-block"]',
+                '[id*="ad-block"]',
+                '[class*="adblock"]',
+                '[id*="adblock"]'
             ];
             
-            const navigatorPlugins = navigator.plugins || [];
-            for (let plugin of navigatorPlugins) {
-                for (let indicator of adBlockerIndicators) {
-                    if (plugin.name && plugin.name.includes(indicator)) {
-                        return true;
-                    }
+            for (const selector of adBlockerSelectors) {
+                const elements = document.querySelectorAll(selector);
+                if (elements.length > 0) {
+                    console.log('🔍 Found ad blocker indicator elements:', selector);
+                    return true;
                 }
             }
             
-            return isBlocked;
+            // Method 4: Try to fetch a known ad script (non-blocking)
+            // This is a more advanced method but might be too aggressive
+            
+            console.log('🔍 No ad blocker detected');
+            return false;
+        }
+        
+        // Function to hide ad blocker warning
+        function hideAdBlockerWarning() {
+            window.adBlockerDetected = false;
+            window.adBlockerWarningShown = false;
+            
+            // Clear the warning and reload content
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) {
+                mainContent.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            }
+            
+            // Show success message
+            showToast('Thank you for supporting the forum archive!', 'success');
+            
+            // Reload the page content
+            if (window.forumApp && window.forumApp.loadHomePage) {
+                window.forumApp.loadHomePage({});
+            } else if (window.router) {
+                window.router.navigate('/');
+            } else {
+                window.location.reload();
+            }
         }
         
         // Function to show ad blocker warning in main content
@@ -497,13 +547,24 @@
                 if (detectAdBlocker()) {
                     showAdBlockerWarning();
                 }
-            }, 5000); // 3 second delay
+            }, 5000); // 5 second delay
         });
         
-        // Periodic check (every 30 seconds)
+        // Periodic check (every 10 seconds)
         setInterval(function() {
-            if (!window.adBlockerWarningShown && detectAdBlocker()) {
-                showAdBlockerWarning();
+            console.log('🔍 Ad blocker periodic check running...');
+            const isBlocked = detectAdBlocker();
+            console.log('🔍 Ad blocker detected:', isBlocked, 'Warning shown:', window.adBlockerWarningShown);
+            
+            if (isBlocked) {
+                // Always show warning if ad blocker is detected (handles page navigation clearing it)
+                if (!window.adBlockerWarningShown) {
+                    console.log('🚨 Showing ad blocker warning');
+                    showAdBlockerWarning();
+                }
+            } else if (window.adBlockerWarningShown) {
+                console.log('✅ Ad blocker no longer detected, hiding warning');
+                hideAdBlockerWarning();
             }
         }, 10000);
     </script>
