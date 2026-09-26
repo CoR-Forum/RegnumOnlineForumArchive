@@ -8,10 +8,12 @@ services:
       - ./src:/app/src
       - ./public:/app/public
       - ./regnumforum.db:/var/lib/sqlite/regnumforum.db
+      - ./archived-images:/app/archived-images
     environment:
       - NODE_ENV=production
       - PORT=3000
       - DB_PATH=/var/lib/sqlite/regnumforum.db
+      - IMAGE_ARCHIVE_DIR=/app/archived-images
     restart: unless-stopped
     networks:
       - forum-network

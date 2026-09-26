@@ -18,13 +18,14 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copy application code
 COPY src/ ./src/
 COPY public/ ./public/
+COPY scripts/ ./scripts/
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
 # Create directories and set permissions
-RUN mkdir -p /var/lib/sqlite && \
+RUN mkdir -p /var/lib/sqlite /app/archived-images && \
     chown -R nodejs:nodejs /app /var/lib/sqlite
 
 # Switch to non-root user

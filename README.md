@@ -474,13 +474,15 @@ HTTP status codes: 200 (success), 400 (bad request), 404 (not found), 429 (rate 
 │   ├── middleware/        # Custom middleware (empty)
 │   ├── models/database.js # SQLite database layer
 │   ├── routes/            # API endpoints (threads, users, stats)
-│   └── utils/helpers.js   # Server utilities
+│   └── utils/             # Server utilities (helpers, image archive lookup)
+├── scripts/               # Maintenance scripts (archive-images.js)
 ├── public/                # Frontend SPA
 │   ├── index.html         # Main HTML
 │   ├── assets/            # Static assets (logos)
 │   ├── css/forum.css      # Stylesheets
 │   └── js/                # JavaScript modules (app, api, router, components, utils)
 ├── regnumforum.db         # SQLite database
+├── archived-images/       # Downloaded copies of embedded images (not in git)
 ├── docker-compose.yml     # Docker configuration
 ├── Dockerfile             # Node.js container
 └── package.json           # Node.js dependencies
@@ -501,6 +503,29 @@ The application requires a SQLite database file named `regnumforum.db` containin
 - `NODE_ENV` - Runtime environment (production/development)
 - `PORT` - Server port (default: 3000)
 - `DB_PATH` - SQLite database path (default: ./regnumforum.db)
+- `IMAGE_ARCHIVE_DIR` - Directory for archived post images (default: ./archived-images)
+
+## Archiving Embedded Images
+
+Posts embed many images hosted on third-party sites (ImageShack, Photobucket, TinyPic, ...), and more of them disappear every year. `scripts/archive-images.js` downloads every image embedded in a post into `archived-images/`. For images that are already offline it falls back to the Wayback Machine.
+
+```bash
+npm run archive-images                   # download everything not archived yet
+npm run archive-images -- --dry-run      # only count the image URLs
+npm run archive-images -- --retry-failed # retry images that failed before
+```
+
+With Docker:
+
+```bash
+mkdir -p archived-images
+docker compose run --rm --user "$(id -u):$(id -g)" forum npm run archive-images
+```
+
+- The script can be resumed. Each URL's result is stored in `archived-images/index.db`, so interrupting and re-running it continues where it stopped.
+- Files are validated by their magic bytes, so HTML error pages are rejected. Files are stored by content hash, so duplicates are kept only once.
+- Some hosts return the same "image removed" placeholder for many different URLs. The script detects this and tries the Wayback Machine for those URLs instead.
+- The server reloads the index every few minutes and serves archived images from `/archived-images/…`. The original URL stays in the `data-original-src` attribute. Images that aren't archived keep their original URL.
 
 ## Future Development
 

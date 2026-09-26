@@ -1,5 +1,6 @@
 import moment from 'moment';
 import sanitizeHtml from 'sanitize-html';
+import { getArchivedImageUrl } from './imageArchive.js';
 
 // Format timestamp from "05-09-2008, 09:39 PM" format to readable format
 export function formatTimestamp(timestamp) {
@@ -82,7 +83,7 @@ export function sanitizeHtmlContent(html) {
   
   const allowedAttributes = {
     a: ['href', 'title', 'target'],
-    img: ['src', 'alt', 'title', 'width', 'height'],
+    img: ['src', 'alt', 'title', 'width', 'height', 'data-original-src'],
     '*': ['class', 'style']
   };
   
@@ -90,7 +91,20 @@ export function sanitizeHtmlContent(html) {
     allowedTags,
     allowedAttributes,
     allowedSchemes: ['http', 'https', 'mailto'],
-    allowedIframeHostnames: []
+    allowedIframeHostnames: [],
+    transformTags: {
+      // Serve third-party images from the local archive when we have a copy
+      img: (tagName, attribs) => {
+        const archived = getArchivedImageUrl(attribs.src);
+        if (!archived) return { tagName, attribs };
+        return { tagName, attribs: { ...attribs, src: archived, 'data-original-src': attribs.src } };
+      },
+      // Links pointing directly at an archived image (e.g. click-to-enlarge)
+      a: (tagName, attribs) => {
+        const archived = getArchivedImageUrl(attribs.href);
+        return archived ? { tagName, attribs: { ...attribs, href: archived } } : { tagName, attribs };
+      }
+    }
   });
 }
 

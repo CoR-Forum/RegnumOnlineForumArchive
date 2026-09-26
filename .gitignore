@@ -2,3 +2,5 @@ regnumforum.db
 
 # node
 node_modules
+# downloaded third-party images
+archived-images/

@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import threadsRouter from './routes/threads.js';
 import usersRouter from './routes/users.js';
 import statsRouter from './routes/stats.js';
+import { IMAGE_ARCHIVE_DIR, initImageArchive } from './utils/imageArchive.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,6 +56,23 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Locally archived copies of third-party images embedded in posts
+initImageArchive();
+app.use('/archived-images', (req, res, next) => {
+  // Only serve image files, never the index database
+  if (!/^\/[0-9a-f]{2}\/[0-9a-f]{64}\.[a-z]+$/.test(req.path)) return res.status(404).end();
+  next();
+}, express.static(IMAGE_ARCHIVE_DIR, {
+  index: false,
+  dotfiles: 'ignore',
+  immutable: true, // file names are content hashes
+  maxAge: '365d',
+  setHeaders: (res) => {
+    // Uploaded files may be SVGs; never let them run scripts on our origin
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox");
+  }
+}), (req, res) => res.status(404).end());
 
 // API Routes
 app.use('/api/threads', threadsRouter);

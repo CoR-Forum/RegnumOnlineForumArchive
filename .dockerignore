@@ -120,3 +120,5 @@ Thumbs.db
 *.db
 *.sqlite
 *.sqlite3
+# Downloaded images (mounted as volume)
+archived-images/
