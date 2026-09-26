@@ -14,7 +14,8 @@ import {
     restoreScrollPosition,
     clearScrollPosition,
     enableAutoScrollSave,
-    formatNumber
+    formatNumber,
+    sanitizeHtml
 } from './utils.js';
 import { threadsAPI, usersAPI, statsAPI, cachedAPI } from './api.js';
 // WebSocket removed - static archive only
@@ -58,6 +59,7 @@ class ForumApplication {
         // Initialize the forum app
         this.init();        // Load stats for footer
         this.loadFooterStats();
+        this.loadDeployInfo();
     }
     
     // Initialize the application
@@ -645,7 +647,7 @@ class ForumApplication {
             
             // Add search info if searching
             if (search) {
-                content += createSearchInfo(search, null, users.length);
+                content += createSearchInfo(search, null, pagination.totalUsers ?? users.length);
             }
             
             // Add results info
@@ -774,7 +776,7 @@ class ForumApplication {
                 <div class="container">
                     <div class="card mb-4">
                         <div class="card-header">
-                            <h3><i class="bi bi-person-circle"></i> ${user.name}</h3>
+                            <h3><i class="bi bi-person-circle"></i> ${sanitizeHtml(user.name)}</h3>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -852,16 +854,16 @@ class ForumApplication {
                                         ${userPosts.map(post => `
                                             <div class="list-group-item list-group-item-action" onclick="navigateToThread(${post.threadId})" style="cursor: pointer;">
                                                 <div class="d-flex w-100 justify-content-between">
-                                                    <h6 class="mb-1">${post.threadName || 'Untitled Thread'}</h6>
-                                                    <small class="text-muted">${post.createdTime || 'No date'}</small>
+                                                    <h6 class="mb-1">${post.threadName ? sanitizeHtml(post.threadName) : 'Untitled Thread'}</h6>
+                                                    <small class="text-muted">${post.timestamp || 'No date'}</small>
                                                 </div>
                                                 <p class="mb-2 text-truncate" style="max-height: 3rem; overflow: hidden;">
-                                                    ${post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No content'}
+                                                    ${post.message ? sanitizeHtml(new DOMParser().parseFromString(post.message, 'text/html').body.textContent.substring(0, 150)) + '...' : 'No content'}
                                                 </p>
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <small class="text-muted">
-                                                        <span class="badge bg-secondary me-1">${post.language || 'Unknown'}</span>
-                                                        <span class="badge bg-info">${post.category || 'General'}</span>
+                                                        <span class="badge bg-secondary me-1">${sanitizeHtml(post.language || 'Unknown')}</span>
+                                                        <span class="badge bg-info">${sanitizeHtml(post.category || 'General')}</span>
                                                     </small>
                                                 </div>
                                             </div>
@@ -888,12 +890,12 @@ class ForumApplication {
                                         ${userThreads.map(thread => `
                                             <div class="list-group-item list-group-item-action" onclick="navigateToThread(${thread.id})" style="cursor: pointer;">
                                                 <div class="d-flex w-100 justify-content-between">
-                                                    <h6 class="mb-1">${thread.name || 'Untitled Thread'}</h6>
+                                                    <h6 class="mb-1">${thread.name ? sanitizeHtml(thread.name) : 'Untitled Thread'}</h6>
                                                     <small class="text-muted">${thread.createdTime || 'No date'}</small>
                                                 </div>
                                                 <p class="mb-1 text-muted">
-                                                    <span class="badge bg-secondary me-2">${thread.language || 'Unknown'}</span>
-                                                    <span class="badge bg-info">${thread.category || 'General'}</span>
+                                                    <span class="badge bg-secondary me-2">${sanitizeHtml(thread.language || 'Unknown')}</span>
+                                                    <span class="badge bg-info">${sanitizeHtml(thread.category || 'General')}</span>
                                                 </p>
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <small class="text-muted">${thread.postCount || 0} posts</small>
@@ -981,6 +983,32 @@ class ForumApplication {
         }
     }
     
+    // Show when the site was last deployed (deploy-info.json is written by the deploy workflow)
+    async loadDeployInfo() {
+        const container = document.getElementById('deploy-info');
+        if (!container) return;
+        
+        try {
+            const response = await fetch('/deploy-info.json', { cache: 'no-store' });
+            if (!response.ok) return;
+            
+            const info = await response.json();
+            const deployedAt = new Date(info.deployedAt);
+            if (isNaN(deployedAt)) return;
+            
+            const formatted = deployedAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+            let html = `<i class="bi bi-clock-history"></i> Last updated: <time datetime="${sanitizeHtml(deployedAt.toISOString())}">${sanitizeHtml(formatted)}</time>`;
+            
+            if (/^[0-9a-f]{7,40}$/i.test(info.commit || '')) {
+                html += ` (<a href="https://github.com/CoR-Forum/RegnumOnlineForumArchive/commit/${info.commit}" target="_blank" rel="noopener" class="text-decoration-none">${info.commit.substring(0, 7)}</a>)`;
+            }
+            
+            container.innerHTML = html;
+        } catch (error) {
+            // No deploy info available (e.g. local development) - leave footer line empty
+        }
+    }
+    
     // Load search page
     async loadSearchPage(params = {}) {
         const { search, language, category, page = 1 } = params;
@@ -1051,12 +1079,13 @@ class ForumApplication {
                 throw new Error('Search failed');
             }
             
-            const { threads } = response.data;
+            const { threads, pagination } = response.data;
             
-            let content = createSearchInfo(search, language, threads.length);
+            let content = createSearchInfo(search, language, pagination?.totalThreads ?? threads.length);
             content += createThreadList(threads, search);
             
             document.getElementById('main-content').innerHTML = content;
+            this.updatePagination(pagination);
             
         } catch (error) {
             console.error('Search failed:', error);

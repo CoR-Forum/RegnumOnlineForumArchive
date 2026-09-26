@@ -230,7 +230,7 @@ class Database {
   }
 
   // Search threads
-  async searchThreads(query, language = null) {
+  async searchThreads(query, language = null, category = null, limit = 50, offset = 0) {
     let sql = `
       SELECT DISTINCT t.id, t.name, t.path,
         COUNT(p.id) as post_count,
@@ -254,13 +254,45 @@ class Database {
       params.push(`%/${language}/%`);
     }
     
+    if (category) {
+      sql += ' AND t.path LIKE ?';
+      params.push(`%/${category}`);
+    }
+    
     sql += ` 
       GROUP BY t.id, t.name, t.path
       ORDER BY MAX(p.timestamp) DESC
-      LIMIT 50
+      LIMIT ? OFFSET ?
     `;
+    params.push(limit, offset);
     
     return this.all(sql, params);
+  }
+
+  // Count threads matching a search query
+  async getSearchThreadCount(query, language = null, category = null) {
+    let sql = `
+      SELECT COUNT(*) as count
+      FROM threads t
+      WHERE (t.name LIKE ? OR EXISTS (
+        SELECT 1 FROM posts p2 WHERE p2.thread_id = t.id AND p2.message LIKE ?
+      ))
+    `;
+    
+    const params = [`%${query}%`, `%${query}%`];
+    
+    if (language) {
+      sql += ' AND t.path LIKE ?';
+      params.push(`%/${language}/%`);
+    }
+    
+    if (category) {
+      sql += ' AND t.path LIKE ?';
+      params.push(`%/${category}`);
+    }
+    
+    const result = await this.get(sql, params);
+    return result ? result.count : 0;
   }
 
   // Get user list with pagination and search
@@ -349,7 +381,9 @@ class Database {
         t.path,
         tc.post_count,
         up.first_post,
-        tc.last_post
+        tc.last_post,
+        up.first_post as created_time,
+        tc.last_post as last_post_time
       FROM (
         SELECT thread_id, MIN(timestamp) as first_post
         FROM posts 

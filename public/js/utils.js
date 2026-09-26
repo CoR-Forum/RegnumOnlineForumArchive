@@ -168,10 +168,13 @@ export function scrollToTop() {
 
 // Highlight search terms in text
 export function highlightSearchTerm(text, searchTerm) {
-    if (!text || !searchTerm) return text;
+    if (!text) return '';
+    const safeText = sanitizeHtml(text);
+    if (!searchTerm) return safeText;
     
-    const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
+    // Match against the escaped text so highlighting never re-introduces raw HTML
+    const regex = new RegExp(`(${escapeRegex(sanitizeHtml(searchTerm))})`, 'gi');
+    return safeText.replace(regex, '<mark>$1</mark>');
 }
 
 // Escape regex special characters
