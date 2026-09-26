@@ -215,7 +215,9 @@ export function formatPostForApi(post) {
     timestamp: post.timestamp ? formatTimestamp(post.timestamp) : null,
     message: sanitizeHtmlContent(post.message),
     threadName: post.thread_name,
-    threadPath: post.thread_path
+    threadPath: post.thread_path,
+    language: post.thread_path ? getLanguageFromPath(post.thread_path) : undefined,
+    category: post.thread_path ? getCategoryFromPath(post.thread_path) : undefined
   };
 }
 

@@ -20,8 +20,14 @@ router.get('/', async (req, res) => {
     
     if (search) {
       // Search threads
-      threads = await db.searchThreads(search, language);
-      totalThreads = threads.length; // For search, we get all results
+      threads = await db.searchThreads(
+        search,
+        language,
+        category,
+        pagination.limit,
+        pagination.offset
+      );
+      totalThreads = await db.getSearchThreadCount(search, language, category);
     } else {
       // Get threads with optional filtering
       threads = await db.getThreads(

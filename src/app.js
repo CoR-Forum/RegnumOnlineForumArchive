@@ -149,6 +149,19 @@ Disallow: /assets/*.png$
 Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
 });
 
+// Escape user-controlled values before injecting them into HTML
+const escapeHtml = (value) => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+// Unknown API routes must return JSON 404s, not the SPA shell
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
 // Enhanced SEO middleware for search engine crawlers
 app.get('*', async (req, res) => {
   const userAgent = req.get('User-Agent') || '';
@@ -178,19 +191,19 @@ app.get('*', async (req, res) => {
         title = 'Forum Statistics - Regnum Online Forum Archive';
         description = 'Champions of Regnum forum archive statistics including post counts, active users, languages, and community analytics.';
         keywords += ', statistics, analytics, forum stats, data, metrics';
-      } else if (req.query.language) {
-        const language = req.query.language;
+      } else if (typeof req.query.language === 'string' && req.query.language) {
+        const language = escapeHtml(req.query.language);
         title = `${language} Discussions - Regnum Online Forum Archive`;
         description = `Browse ${language} discussions and threads from the Champions of Regnum community. Find posts in ${language} language.`;
         keywords += `, ${language}, language, discussions, threads`;
-        canonicalUrl = `/?language=${encodeURIComponent(language)}`;
+        canonicalUrl = `/?language=${encodeURIComponent(req.query.language)}`;
         
-        if (req.query.category) {
-          const category = req.query.category;
+        if (typeof req.query.category === 'string' && req.query.category) {
+          const category = escapeHtml(req.query.category);
           title = `${category} (${language}) - Regnum Online Forum Archive`;
           description = `Browse ${category} discussions in ${language} from the Champions of Regnum community.`;
           keywords += `, ${category}, category`;
-          canonicalUrl = `/?language=${encodeURIComponent(language)}&category=${encodeURIComponent(category)}`;
+          canonicalUrl = `/?language=${encodeURIComponent(req.query.language)}&category=${encodeURIComponent(req.query.category)}`;
         }
       }
       
@@ -216,7 +229,7 @@ app.get('*', async (req, res) => {
       // Update canonical URL
       html = html.replace(
         /<link rel="canonical" href="[^"]*">/i, 
-        `<link rel="canonical" href="${canonicalUrl}">`
+        `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">`
       );
       
       // Update Open Graph tags
@@ -230,7 +243,7 @@ app.get('*', async (req, res) => {
       );
       html = html.replace(
         /<meta property="og:url" content="[^"]*">/i, 
-        `<meta property="og:url" content="${canonicalUrl}">`
+        `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`
       );
       
       // Add structured data for better SEO
@@ -269,11 +282,6 @@ app.use((err, req, res, next) => {
     error: 'Something went wrong!',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
-});
-
-// 404 handler for API routes
-app.use('/api/*', (req, res) => {
-  res.status(404).json({ error: 'API endpoint not found' });
 });
 
 // Start server

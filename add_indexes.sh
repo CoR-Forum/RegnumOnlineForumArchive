@@ -3,7 +3,7 @@
 # Script to add critical indexes to the existing SQLite database
 # This will dramatically improve query performance
 
-DB_PATH="./regnumforum.db"
+DB_PATH="${DB_PATH:-./regnumforum.db}"
 
 echo "Adding critical performance indexes to $DB_PATH..."
 
@@ -33,19 +33,12 @@ CREATE INDEX IF NOT EXISTS idx_threads_id_path ON threads(id, path);
 CREATE INDEX IF NOT EXISTS idx_users_id_name ON users(id, name);
 
 -- Covering indexes for fastest lookups
-# Advanced covering indexes for ultra-fast user queries
-echo "Adding covering indexes..."
-sqlite3 "$DB_FILE" "CREATE INDEX IF NOT EXISTS idx_posts_user_covering ON posts (user_id, timestamp DESC, id, thread_id, message);"
-sqlite3 "$DB_FILE" "CREATE INDEX IF NOT EXISTS idx_posts_thread_covering ON posts (thread_id, user_id, timestamp, id, message);"
+CREATE INDEX IF NOT EXISTS idx_posts_user_covering ON posts (user_id, timestamp DESC, id, thread_id, message);
+CREATE INDEX IF NOT EXISTS idx_posts_thread_covering ON posts (thread_id, user_id, timestamp, id, message);
 
-# Additional specialized indexes for edge cases
-echo "Adding specialized indexes..."
-sqlite3 "$DB_FILE" "CREATE INDEX IF NOT EXISTS idx_posts_timestamp_desc ON posts (timestamp DESC);"
-sqlite3 "$DB_FILE" "CREATE INDEX IF NOT EXISTS idx_users_name_lower ON users (LOWER(name));"
-
-echo "All indexes added successfully!"
-sqlite3 regnumforum.db ".indexes" | wc -l
-echo " indexes created total."
+-- Additional specialized indexes for edge cases
+CREATE INDEX IF NOT EXISTS idx_posts_timestamp_desc ON posts (timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_users_name_lower ON users (LOWER(name));
 
 -- Analyze tables for better query planning
 ANALYZE;

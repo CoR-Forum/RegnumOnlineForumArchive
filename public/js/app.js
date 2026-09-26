@@ -14,7 +14,8 @@ import {
     restoreScrollPosition,
     clearScrollPosition,
     enableAutoScrollSave,
-    formatNumber
+    formatNumber,
+    sanitizeHtml
 } from './utils.js';
 import { threadsAPI, usersAPI, statsAPI, cachedAPI } from './api.js';
 // WebSocket removed - static archive only
@@ -645,7 +646,7 @@ class ForumApplication {
             
             // Add search info if searching
             if (search) {
-                content += createSearchInfo(search, null, users.length);
+                content += createSearchInfo(search, null, pagination.totalUsers ?? users.length);
             }
             
             // Add results info
@@ -774,7 +775,7 @@ class ForumApplication {
                 <div class="container">
                     <div class="card mb-4">
                         <div class="card-header">
-                            <h3><i class="bi bi-person-circle"></i> ${user.name}</h3>
+                            <h3><i class="bi bi-person-circle"></i> ${sanitizeHtml(user.name)}</h3>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -852,16 +853,16 @@ class ForumApplication {
                                         ${userPosts.map(post => `
                                             <div class="list-group-item list-group-item-action" onclick="navigateToThread(${post.threadId})" style="cursor: pointer;">
                                                 <div class="d-flex w-100 justify-content-between">
-                                                    <h6 class="mb-1">${post.threadName || 'Untitled Thread'}</h6>
-                                                    <small class="text-muted">${post.createdTime || 'No date'}</small>
+                                                    <h6 class="mb-1">${post.threadName ? sanitizeHtml(post.threadName) : 'Untitled Thread'}</h6>
+                                                    <small class="text-muted">${post.timestamp || 'No date'}</small>
                                                 </div>
                                                 <p class="mb-2 text-truncate" style="max-height: 3rem; overflow: hidden;">
-                                                    ${post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No content'}
+                                                    ${post.message ? sanitizeHtml(new DOMParser().parseFromString(post.message, 'text/html').body.textContent.substring(0, 150)) + '...' : 'No content'}
                                                 </p>
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <small class="text-muted">
-                                                        <span class="badge bg-secondary me-1">${post.language || 'Unknown'}</span>
-                                                        <span class="badge bg-info">${post.category || 'General'}</span>
+                                                        <span class="badge bg-secondary me-1">${sanitizeHtml(post.language || 'Unknown')}</span>
+                                                        <span class="badge bg-info">${sanitizeHtml(post.category || 'General')}</span>
                                                     </small>
                                                 </div>
                                             </div>
@@ -888,12 +889,12 @@ class ForumApplication {
                                         ${userThreads.map(thread => `
                                             <div class="list-group-item list-group-item-action" onclick="navigateToThread(${thread.id})" style="cursor: pointer;">
                                                 <div class="d-flex w-100 justify-content-between">
-                                                    <h6 class="mb-1">${thread.name || 'Untitled Thread'}</h6>
+                                                    <h6 class="mb-1">${thread.name ? sanitizeHtml(thread.name) : 'Untitled Thread'}</h6>
                                                     <small class="text-muted">${thread.createdTime || 'No date'}</small>
                                                 </div>
                                                 <p class="mb-1 text-muted">
-                                                    <span class="badge bg-secondary me-2">${thread.language || 'Unknown'}</span>
-                                                    <span class="badge bg-info">${thread.category || 'General'}</span>
+                                                    <span class="badge bg-secondary me-2">${sanitizeHtml(thread.language || 'Unknown')}</span>
+                                                    <span class="badge bg-info">${sanitizeHtml(thread.category || 'General')}</span>
                                                 </p>
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <small class="text-muted">${thread.postCount || 0} posts</small>
@@ -1051,12 +1052,13 @@ class ForumApplication {
                 throw new Error('Search failed');
             }
             
-            const { threads } = response.data;
+            const { threads, pagination } = response.data;
             
-            let content = createSearchInfo(search, language, threads.length);
+            let content = createSearchInfo(search, language, pagination?.totalThreads ?? threads.length);
             content += createThreadList(threads, search);
             
             document.getElementById('main-content').innerHTML = content;
+            this.updatePagination(pagination);
             
         } catch (error) {
             console.error('Search failed:', error);
