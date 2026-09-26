@@ -59,6 +59,7 @@ class ForumApplication {
         // Initialize the forum app
         this.init();        // Load stats for footer
         this.loadFooterStats();
+        this.loadDeployInfo();
     }
     
     // Initialize the application
@@ -979,6 +980,32 @@ class ForumApplication {
             document.getElementById('stats-users').textContent = 'N/A';
             document.getElementById('stats-threads').textContent = 'N/A';
             document.getElementById('stats-posts').textContent = 'N/A';
+        }
+    }
+    
+    // Show when the site was last deployed (deploy-info.json is written by the deploy workflow)
+    async loadDeployInfo() {
+        const container = document.getElementById('deploy-info');
+        if (!container) return;
+        
+        try {
+            const response = await fetch('/deploy-info.json', { cache: 'no-store' });
+            if (!response.ok) return;
+            
+            const info = await response.json();
+            const deployedAt = new Date(info.deployedAt);
+            if (isNaN(deployedAt)) return;
+            
+            const formatted = deployedAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+            let html = `<i class="bi bi-clock-history"></i> Last updated: <time datetime="${sanitizeHtml(deployedAt.toISOString())}">${sanitizeHtml(formatted)}</time>`;
+            
+            if (/^[0-9a-f]{7,40}$/i.test(info.commit || '')) {
+                html += ` (<a href="https://github.com/CoR-Forum/RegnumOnlineForumArchive/commit/${info.commit}" target="_blank" rel="noopener" class="text-decoration-none">${info.commit.substring(0, 7)}</a>)`;
+            }
+            
+            container.innerHTML = html;
+        } catch (error) {
+            // No deploy info available (e.g. local development) - leave footer line empty
         }
     }
     
